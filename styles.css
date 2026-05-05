@@ -561,16 +561,13 @@ p.intro {
 
 /* === END OF MEMBERSHIP === */
 
-
-
-
 /* === PROGRAMS PAGES === */
 .programs-flex {
   display: flex;
   gap: 3rem;
   justify-content: center;
   flex-wrap: wrap; /* чтобы на узких экранах шли друг под другом */
-  margin-bottom: 3rem;
+  margin-bottom: 0rem;
 }
 
 .program-subsection {
@@ -609,17 +606,16 @@ hr {
   margin: 1rem 0;
 }
 
-
 /* === Private Lessons Section === */
 
 .private-programs {
   max-width: 900px;
-  margin: 0 auto 4rem;
+  margin: 0rem auto 3rem;
 }
 
 .private-programs h2.private-title {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   color: #0b3d1a;
   font-weight: 700;
   font-size: 1.75rem;
@@ -633,7 +629,7 @@ hr {
   gap: 2rem;
   flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 3rem;
+  margin-bottom: 1rem;
 }
 
 /* Pricing block */
@@ -778,19 +774,20 @@ hr {
   display: flex;
   gap: 2rem;
   align-items: flex-start;
-  margin-bottom: 3rem;
+  margin-bottom: 1rem;
   flex-wrap: nowrap; /* prevent wrapping on desktop */
 }
 
 .board-list {
-  flex: 0 0 60%;
+  flex: 1 0 50%;
   font-size: 1.1rem;
   color: #14532d;
 }
 
 .board-image {
-  flex: 0 0 35%;
-  max-width: 300px;
+  flex: 0 2 50%;
+   margin-top: 5rem;
+  max-width: 400px;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(20, 83, 45, 0.15);
   object-fit: cover;
@@ -951,3 +948,65 @@ hr {
 }
 
 /* === END OF GUIDELINES PAGE === */
+
+
+/* === 404 PAGE === */
+.error-404 {
+  min-height: 20vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.error-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+  max-width: 900px;
+  width: 100%;
+}
+
+/* TEXT */
+.error-text h1 {
+  font-size: 4rem;
+  margin: 0 0 1rem 0;
+  color: #0b3d1a;
+}
+
+.error-text p {
+  margin: 0 0 1rem 0;
+  color: #14532d;
+}
+
+/* BUTTONS */
+.error-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+/* IMAGE */
+.error-img img {
+  width: 300px;
+  height: auto;
+  display: block;
+}
+
+/* MOBILE */
+@media (max-width: 700px) {
+  .error-box {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .error-img img {
+    width: 140px;
+  }
+
+  .error-buttons {
+    justify-content: center;
+  }
+}
