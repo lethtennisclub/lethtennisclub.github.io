@@ -9,19 +9,19 @@
 
 <style>
 body {
-  font-family: 'EB Garamond', serif;
+  font-family: system-ui, -apple-system, sans-serif;
   background:#f0fdf4;
   padding:2rem;
   color:#14532d;
 }
 
 .box {
-  max-width:700px;
+  max-width:750px;
   margin:0 auto 2rem;
   background:white;
   padding:2rem;
   border-radius:12px;
-  box-shadow:0 0 10px rgba(0,0,0,0.1);
+  box-shadow:0 10px 25px rgba(0,0,0,0.08);
 }
 
 input, select, button {
@@ -29,7 +29,7 @@ input, select, button {
   padding:0.6rem;
   margin-top:0.5rem;
   border-radius:6px;
-  border:1px solid #ccc;
+  border:1px solid #ddd;
 }
 
 button {
@@ -37,20 +37,27 @@ button {
   color:white;
   border:none;
   cursor:pointer;
+  transition:0.2s;
 }
 
-button:hover { background:#166534; }
-
-.event {
-  padding:0.4rem 0;
-  border-bottom:1px solid #eee;
+button:hover {
+  transform:translateY(-1px);
+  background:#166534;
 }
 
 summary {
   cursor:pointer;
-  font-weight:bold;
+  font-weight:600;
   margin:0.5rem 0;
 }
+
+.event {
+  padding:0.5rem 0;
+  border-bottom:1px solid #eee;
+  display:flex;
+  justify-content:space-between;
+}
+small { color:#6b7280; }
 </style>
 </head>
 
@@ -69,8 +76,8 @@ summary {
     <option value="weekly">Weekly</option>
   </select>
 
-  <div id="repeatOptions" style="display:none; margin-top:1rem;">
-    <label>Repeat Days:</label>
+  <div id="repeatBox" style="display:none; margin-top:1rem;">
+    <label>Repeat Days:</label><br/>
 
     <label><input type="checkbox" class="day" value="1"> Mon</label>
     <label><input type="checkbox" class="day" value="2"> Tue</label>
@@ -80,7 +87,8 @@ summary {
     <label><input type="checkbox" class="day" value="6"> Sat</label>
     <label><input type="checkbox" class="day" value="0"> Sun</label>
 
-    <label style="margin-top:1rem;">Repeat Until</label>
+    <br/><br/>
+    <label>Repeat Until:</label>
     <input type="date" id="until" />
   </div>
 
@@ -122,58 +130,62 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// AUTH (как в админке)
+// AUTH CHECK
 onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    alert("Not authorized");
-  } else {
-    loadEvents();
-  }
+  if (user) loadEvents();
+  else alert("Not logged in");
 });
 
 // repeat toggle
 document.getElementById("repeat").onchange = (e) => {
-  document.getElementById("repeatOptions").style.display =
+  document.getElementById("repeatBox").style.display =
     e.target.value === "weekly" ? "block" : "none";
 };
 
 // ADD EVENT
 document.getElementById("addBtn").onclick = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return alert("Not logged in");
 
-  const title = document.getElementById("title").value;
-  const date = document.getElementById("date").value;
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
+    const title = document.getElementById("title").value;
+    const date = document.getElementById("date").value;
+    const start = document.getElementById("start").value;
+    const end = document.getElementById("end").value;
 
-  const repeatType = document.getElementById("repeat").value;
+    const repeat = document.getElementById("repeat").value;
 
-  const days = [...document.querySelectorAll(".day:checked")]
-    .map(d => Number(d.value));
+    const days = [...document.querySelectorAll(".day:checked")]
+      .map(d => Number(d.value));
 
-  const until = document.getElementById("until").value;
+    const until = document.getElementById("until").value;
 
-  await addDoc(collection(db, "events"), {
-    title,
-    date,
-    start,
-    end,
-    repeat: repeatType,
-    repeatDays: days,
-    repeatUntil: until
-  });
+    await addDoc(collection(db, "events"), {
+      title,
+      date,
+      start,
+      end,
+      repeat,
+      repeatDays: days,
+      repeatUntil: until
+    });
 
-  loadEvents();
+    loadEvents();
+
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  }
 };
 
 // FORMAT DATE
-function formatDate(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric"
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", {
+    weekday:"long",
+    month:"long",
+    day:"numeric",
+    year:"numeric"
   });
 }
 
@@ -186,12 +198,12 @@ async function loadEvents() {
 
   const grouped = {};
 
-  snap.forEach(d => {
-    const ev = d.data();
+  snap.forEach(docSnap => {
+    const ev = docSnap.data();
     const key = ev.title || "Untitled Event";
 
     if (!grouped[key]) grouped[key] = [];
-    grouped[key].push({ id: d.id, ...ev });
+    grouped[key].push(ev);
   });
 
   Object.keys(grouped).forEach(title => {
@@ -208,8 +220,11 @@ async function loadEvents() {
       div.className = "event";
 
       div.innerHTML = `
-        ${formatDate(ev.date)} | ${ev.start || ""}-${ev.end || ""}
-        ${ev.repeat === "weekly" ? " 🔁" : ""}
+        <div>
+          <b>${formatDate(ev.date)}</b><br/>
+          <small>${ev.start || ""} - ${ev.end || ""}</small>
+          ${ev.repeat === "weekly" ? " 🔁" : ""}
+        </div>
       `;
 
       details.appendChild(div);
@@ -218,12 +233,6 @@ async function loadEvents() {
     list.appendChild(details);
   });
 }
-
-// DELETE
-window.del = async (id) => {
-  await deleteDoc(doc(db, "events", id));
-  loadEvents();
-};
 
 </script>
 
