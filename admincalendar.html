@@ -52,16 +52,21 @@ button:hover { background:#166534; }
   background:#b91c1c;
   padding:0.3rem 0.6rem;
 }
+
 .delBtn:hover { background:#7f1d1d; }
 
 details {
   margin-bottom:1rem;
 }
+
 summary {
   cursor:pointer;
   font-weight:600;
 }
+
 small { color:#6b7280; }
+
+.hidden { display:none; }
 </style>
 </head>
 
@@ -71,21 +76,43 @@ small { color:#6b7280; }
   <h2>Add Event</h2>
 
   <input id="title" placeholder="Title" />
-
   <input id="date" type="date" />
 
-  <input id="start" type="time" />
-  <input id="end" type="time" />
+  <!-- HOURS ONLY -->
+  <label>Start hour</label>
+  <select id="startHour"></select>
+
+  <label>End hour</label>
+  <select id="endHour"></select>
 
   <select id="repeat">
     <option value="none">No repeat</option>
     <option value="weekly">Weekly</option>
   </select>
 
-  <button id="addBtn">Add Event</button>
+  <!-- WEEKLY OPTIONS -->
+  <details id="weeklyBox">
+    <summary>Weekly settings</summary>
 
+    <div>
+      <label><input type="checkbox" class="day" value="1"> Mon</label>
+      <label><input type="checkbox" class="day" value="2"> Tue</label>
+      <label><input type="checkbox" class="day" value="3"> Wed</label>
+      <label><input type="checkbox" class="day" value="4"> Thu</label>
+      <label><input type="checkbox" class="day" value="5"> Fri</label>
+      <label><input type="checkbox" class="day" value="6"> Sat</label>
+      <label><input type="checkbox" class="day" value="0"> Sun</label>
+    </div>
+
+    <br/>
+
+    <label>Repeat end date</label>
+    <input type="date" id="repeatEnd" />
+  </details>
+
+  <button id="addBtn">Add Event</button>
   <button id="deleteAll" style="margin-top:1rem;background:#7f1d1d;">
-    Delete ALL events
+    Delete ALL
   </button>
 </div>
 
@@ -95,7 +122,6 @@ small { color:#6b7280; }
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import {
   getFirestore,
@@ -103,8 +129,7 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc,
-  serverTimestamp
+  doc
 } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -116,24 +141,49 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ===== HOURS DROPDOWN (8–23) =====
+const startHour = document.getElementById("startHour");
+const endHour = document.getElementById("endHour");
+
+for (let h = 8; h <= 23; h++) {
+  const opt1 = new Option(`${h}:00`, `${h}:00`);
+  const opt2 = new Option(`${h}:00`, `${h}:00`);
+  startHour.add(opt1);
+  endHour.add(opt2);
+}
+
+// ===== WEEKLY TOGGLE =====
+document.getElementById("repeat").onchange = (e) => {
+  document.getElementById("weeklyBox").open = e.target.value === "weekly";
+};
+
 // ===== ADD EVENT =====
 document.getElementById("addBtn").onclick = async () => {
 
-  const title = titleInput.value;
-  const date = dateInput.value;
-  const start = startInput.value;
-  const end = endInput.value;
-  const repeat = repeatInput.value;
+  const title = document.getElementById("title").value;
+  const date = document.getElementById("date").value;
 
-  const startISO = `${date}T${start}`;
-  const endISO = `${date}T${end}`;
+  const startHourVal = startHour.value;
+  const endHourVal = endHour.value;
 
-  await addDoc(collection(db,"events"), {
+  const repeat = document.getElementById("repeat").value;
+
+  const days = [...document.querySelectorAll(".day:checked")]
+    .map(d => Number(d.value));
+
+  const repeatEnd = document.getElementById("repeatEnd").value;
+
+  await addDoc(collection(db, "events"), {
     title,
-    start: startISO,
-    end: endISO,
-    repeat,
-    createdAt: serverTimestamp()
+    start: `${date}T${startHourVal}:00`,
+    end: `${date}T${endHourVal}:00`,
+    recurrence: repeat === "weekly"
+      ? {
+          weekly: true,
+          days,
+          repeatEnd
+        }
+      : null
   });
 
   loadEvents();
@@ -141,16 +191,15 @@ document.getElementById("addBtn").onclick = async () => {
 
 // ===== LOAD EVENTS =====
 async function loadEvents() {
-
-  const snap = await getDocs(collection(db,"events"));
   const list = document.getElementById("list");
   list.innerHTML = "";
+
+  const snap = await getDocs(collection(db, "events"));
 
   const grouped = {};
 
   snap.forEach(d => {
     const ev = { id: d.id, ...d.data() };
-
     if (!grouped[ev.title]) grouped[ev.title] = [];
     grouped[ev.title].push(ev);
   });
@@ -158,6 +207,8 @@ async function loadEvents() {
   Object.entries(grouped).forEach(([title, events]) => {
 
     const details = document.createElement("details");
+    details.open = false;
+
     details.innerHTML = `<summary>${title}</summary>`;
 
     events.forEach(ev => {
@@ -165,15 +216,9 @@ async function loadEvents() {
       const row = document.createElement("div");
       row.className = "event";
 
-      const date = new Date(ev.start).toLocaleDateString("en-US", {
-        weekday:"long",
-        month:"long",
-        day:"numeric"
-      });
-
       row.innerHTML = `
         <div>
-          <b>${date}</b><br/>
+          <b>${new Date(ev.start).toDateString()}</b><br/>
           <small>${ev.start.slice(11,16)} - ${ev.end.slice(11,16)}</small>
         </div>
 
@@ -193,16 +238,18 @@ async function loadEvents() {
 document.addEventListener("click", async (e) => {
   if (!e.target.classList.contains("delBtn")) return;
 
-  await deleteDoc(doc(db,"events", e.target.dataset.id));
+  const id = e.target.dataset.id;
+
+  await deleteDoc(doc(db, "events", id));
   loadEvents();
 });
 
 // ===== DELETE ALL =====
 document.getElementById("deleteAll").onclick = async () => {
-  const snap = await getDocs(collection(db,"events"));
+  const snap = await getDocs(collection(db, "events"));
 
   for (let d of snap.docs) {
-    await deleteDoc(doc(db,"events", d.id));
+    await deleteDoc(doc(db, "events", d.id));
   }
 
   loadEvents();
@@ -211,6 +258,5 @@ document.getElementById("deleteAll").onclick = async () => {
 loadEvents();
 
 </script>
-
 </body>
 </html>
