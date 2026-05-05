@@ -1,299 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
-<title>Event Calendar | LTC Tennis Club</title>
-  <link href="https://fonts.googleapis.com/css2?family=Lora&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
- <!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Admin Calendar</title>
 
-  <style>.main-content {
-  max-width: 1100px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-  color: #14532d;
+<style>
+body {
+  font-family: system-ui;
+  background:#f0fdf4;
+  padding:2rem;
+  color:#14532d;
 }
 
-.content-wrapper {
-  display: flex;
-  gap: 2rem;
-  align-items: flex-start;
-  flex-wrap: nowrap;
+.box {
+  max-width:800px;
+  margin:0 auto 2rem;
+  background:white;
+  padding:2rem;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.08);
 }
 
-.weekly-events {
-  flex-grow: 1;
-  max-width: 250px;
-  font-size: 1rem;
-  line-height: 1.5;
+.row {
+  display:flex;
+  gap:10px;
 }
 
-.weekly-events ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+input, select, button {
+  width:100%;
+  padding:0.6rem;
+  margin-top:0.5rem;
+  border-radius:6px;
+  border:1px solid #ddd;
 }
 
-.weekly-events li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #14532d33;
-  font-weight: 500;
+button {
+  background:#15803d;
+  color:white;
+  border:none;
+  cursor:pointer;
 }
 
-.weekly-events li strong {
-  color: #2a6b2f;
+button:hover { background:#166534; }
+
+details {
+  margin-bottom:1rem;
+  background:#f9fff9;
+  padding:1rem;
+  border-radius:10px;
 }
 
-#calendar {
-  width: 850px;
-  min-height: 650px;
-  background-color: #f0fdf4;
-  padding: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(20, 83, 45, 0.15);
+.event {
+  display:flex;
+  justify-content:space-between;
+  padding:0.4rem 0;
+  border-bottom:1px solid #eee;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .content-wrapper {
-    flex-direction: column;
-  }
-
-  #calendar,
-  .weekly-events {
-    width: 100%;
-    max-width: 100%;
-  }
+.delBtn {
+  background:#b91c1c;
+  width:auto;
+  padding:0.3rem 0.6rem;
 }
-
-/* Кнопки календаря зелёные */
-.fc .fc-button {
-  background-color: #0b3d1a !important; /* насыщенный зелёный */
-  border: none !important;
-  color: #fff !important;
-  box-shadow: none !important;
-  text-transform: none !important; /* убрать капс */
-  font-weight: 600;
-}
-
-/* При наведении */
-.fc .fc-button:hover,
-.fc .fc-button:focus {
-  background-color: #0d351d !important; /* более тёмный зелёный */
-  outline: none !important;
-}
-
-/* Активная кнопка */
-.fc .fc-button:active,
-.fc .fc-button.fc-button-active {
-  background-color: #0f3e23 !important; /* ещё темнее */
-  box-shadow: inset 0 3px 5px rgba(0,0,0,0.125);
-  color: #dbe7cf !important;
-}
-
-/* Стили для события — время сверху, название под ним */
-.fc-event-main-frame {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  gap: 2px;
-  padding: 2px 4px !important;
-}
-
-/* Название события */
-.fc-event-title {
-  order: 1;
-  font-weight: 600;
-  font-size: 0.85rem;
-  white-space: normal !important;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  max-height: 3em;
-  overflow: hidden;
-}
-
-/* Контейнер события */
-.fc-event-main {
-  overflow: hidden !important;
-  max-height: 4.5em;
-}
-
-/* Контейнер события */
-.fc-event {
-  padding: 4px 6px !important;
-  max-height: none !important;  /* Убираем ограничение высоты */
-  overflow: visible !important; /* Чтобы текст не обрезался */
-  white-space: normal !important; /* Чтобы текст переносился */
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
-}
-
-/* Время */
-.fc-event-time {
-  font-weight: 600;
-  font-size: 0.7rem;
-  color: #0b3d1a;
-  white-space: nowrap;
-  margin-bottom: 2px;
-}
-
-/* Название события */
-.fc-event-title {
-  font-weight: 400;
-  font-size: 0.75rem;
-  white-space: normal !important;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  width: 100%;
-}
-
 </style>
-  
 </head>
+
 <body>
 
-  <header>
-    <div class="header-inner">
-      <div class="logo-container">
-        <a href="home.html"><img src="images/logo.png" alt="Club Logo" /></a>
-      </div>
-<nav>
-  <a href="home.html" class="nav-link">Home</a>
-  <a href="membership.html" class="nav-link">Membership</a>
-  <a href="programs.html" class="nav-link">Programs</a>
+<div class="box">
+  <h2>Add Event</h2>
 
-  <div class="dropdown">
-    <a href="events.html" class="nav-link dropdown-toggle">
-      Events
-      <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.957a.75.75 0 111.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-      </svg>
-    </a>
-    <div class="dropdown-menu">
-      <a href="tournaments.html" class="dropdown-item">Tournaments</a>
-      <a href="boxleague.html" class="dropdown-item">Box League</a>
-      <a href="eventcalendar.html" class="dropdown-item">Event Calendar</a>
-    </div>
+  <input id="title" placeholder="Event title"/>
+
+  <div class="row">
+    <input type="date" id="date"/>
   </div>
 
-  <div class="dropdown">
-    <a href="clubinfo.html" class="nav-link dropdown-toggle">
-      About Us
-      <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.957a.75.75 0 111.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-      </svg>
-    </a>
-    <div class="dropdown-menu">
-      <div class="dropdown-submenu">
-        <a href="guidelines.html" class="dropdown-item dropdown-toggle">
-          Club Guidelines
-        </a>
-        <div class="dropdown-menu">
-          <a href="club-rules.html" class="dropdown-item">Club Rules</a>
-          <a href="tennis-rules.html" class="dropdown-item">Basic Rules of Tennis</a>
-          <a href="etiquette.html" class="dropdown-item">On-Court Etiquette</a>
-          <a href="tournament-conduct.html" class="dropdown-item">Tournament Conduct</a>
+  <div class="row">
+    <input type="time" id="start"/>
+    <input type="time" id="end"/>
+  </div>
+
+  <select id="repeat">
+    <option value="none">No repeat</option>
+    <option value="weekly">Weekly</option>
+  </select>
+
+  <button id="addBtn">Add Event</button>
+</div>
+
+<div class="box">
+  <h2>Events</h2>
+  <div id="list"></div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD5iFrQ4uprmeVeJCyKMiTDXk2T_k1sv4I",
+  authDomain: "ltc-website-8a884.firebaseapp.com",
+  projectId: "ltc-website-8a884",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ================= ADD EVENT =================
+document.getElementById("addBtn").onclick = async () => {
+
+  const title = document.getElementById("title").value;
+  const date = document.getElementById("date").value;
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+  const repeat = document.getElementById("repeat").value;
+
+  if (!title || !date || !start || !end) {
+    alert("Fill all fields");
+    return;
+  }
+
+  await addDoc(collection(db,"events"), {
+    title,
+    start: `${date}T${start}:00`,
+    end: `${date}T${end}:00`,
+    repeat
+  });
+
+  loadEvents();
+};
+
+// ================= LOAD EVENTS =================
+async function loadEvents() {
+
+  const snap = await getDocs(collection(db,"events"));
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  const grouped = {};
+
+  snap.forEach(d => {
+    const ev = { id: d.id, ...d.data() };
+
+    if (!grouped[ev.title]) grouped[ev.title] = [];
+    grouped[ev.title].push(ev);
+  });
+
+  Object.entries(grouped).forEach(([title, items]) => {
+
+    const details = document.createElement("details");
+    details.open = true;
+
+    const summary = document.createElement("summary");
+    summary.textContent = title;
+
+    details.appendChild(summary);
+
+    items.forEach(ev => {
+
+      const row = document.createElement("div");
+      row.className = "event";
+
+      row.innerHTML = `
+        <div>
+          ${new Date(ev.start).toLocaleString()} 
+          ${ev.repeat === "weekly" ? " 🔁" : ""}
         </div>
-      </div>
-      <a href="https://www.customclothingstore.ca/online-store/Lethbridge-Tennis-Club-c151802544" target="_blank" rel="noopener" class="dropdown-item">Official LTC Clothing</a>
-      <a href="contact.html" class="dropdown-item">Contact Us</a>
-    </div>
-  </div>
-</nav>
 
-    </div>
-  </header>
+        <button class="delBtn" data-id="${ev.id}">
+          delete
+        </button>
+      `;
 
-<main class="main-content">
-  <h1>Event Calendar</h1>
-  
-  <div class="content-wrapper">
-    <nav class="weekly-events">
-      <ul>
-        <li>
-          <strong>Monday</strong><br />
-          Team Tennis<br />
-          6–9 p.m. Monday nights from May to August.<br />
-          All levels are welcome.<br />
-          To register, email: <a href="mailto:lethtennisclub@gmail.com">lethtennisclub@gmail.com</a>
-        </li>
-        <li>
-          <strong>Tuesday</strong><br />
-          Men’s Night<br />
-          All skill levels are welcome.<br />
-          Every Tuesday 6–9 p.m. from May to September.
-        </li>
-        <li>
-          <strong>Wednesday</strong><br />
-          Women’s Night<br />
-          All skill levels are welcome.<br />
-          Every Wednesday 6–9 p.m. from May to September.
-        </li>
-        <li>
-          <strong>Saturday</strong><br />
-          Social Tennis<br />
-          Meet fellow club members and play a set or two.<br />
-          Every Saturday 1–3 p.m. from May to September (weather permitting).
-        </li>
-      </ul>
-    </nav>
-    
-    <section id="calendar"></section>
-  </div>
-</main>
+      details.appendChild(row);
+    });
 
-<footer>
-  <div class="footer-container" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-top: 3px solid #14532d;">
-    <div class="footer-left" style="display: flex; flex-direction: column; justify-content: center; gap: 0.5rem;">
-      <p style="margin: 0; font-weight: bold; font-size: 1.2rem; color: #a5d6a7;">Lethbridge Tennis Club</p>
-      <address style="font-size: 1rem; line-height: 1.4; color: #c8e6c9; margin: 0;">
-        2611 Parkside Dr S, Lethbridge, AB T1J 1C7<br />
-        Email: <a href="mailto:lethtennisclub@gmail.com" style="color: #c8e6c9; text-decoration: underline;">lethtennisclub@gmail.com</a><br />
-        Phone: <a href="tel:+14033274673" style="color: #c8e6c9; text-decoration: underline;">(403) 327-4673</a>
-      </address>
-      <p style="margin: 0; font-size: 1.1rem;">
-        <a href="https://www.facebook.com/groups/27098917284/" target="_blank" rel="noopener noreferrer"
-          style="color: #c8e6c9; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="#c8e6c9" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <path d="M22.675 0h-21.35C.597 0 0 .598 0 1.333v21.333C0 23.402.597 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.894-4.788 4.659-4.788 1.325 0 2.466.099 2.797.143v3.24h-1.918c-1.505 0-1.796.715-1.796 1.763v2.312h3.59l-.467 3.622h-3.123V24h6.116c.728 0 1.324-.598 1.324-1.333V1.333C24 .598 23.403 0 22.675 0z"/>
-          </svg>
-          Facebook Group
-        </a>
-      </p>
-    </div>
-    <div class="footer-right" style="flex: 1; margin-left: 2rem;">
-      <iframe
-        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2614.3871549932996!2d-112.8044901!3d49.6907281!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x536e865192eb8039%3A0x918d8a8583593869!2sLethbridge%20Tennis%20Club!5e0!3m2!1sen!2sca!4v1720898982070!5m2!1sen!2sca"
-        allowfullscreen=""
-        loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-        title="Lethbridge Tennis Club Location Map"
-        style="border:0; width:100%; height:200px; border-radius:8px;">
-      </iframe>
-    </div>
-  </div>
-    <div style="text-align: center; padding: 1rem 0; font-size: 0.9rem; color: #a5d6a7; border-top: 1px solid #14532d;">
-    © <span id="current-year"></span> Lethbridge Tennis Club
-  </div>
-</footer>
+    list.appendChild(details);
+  });
+}
 
- <!-- SCRIPTS -->
+// ================= DELETE =================
+document.addEventListener("click", async (e) => {
+  if (!e.target.classList.contains("delBtn")) return;
 
-  <!-- Footer Year -->
-<script>
-  document.getElementById('current-year').textContent = new Date().getFullYear();
+  const id = e.target.dataset.id;
+
+  await deleteDoc(doc(db,"events",id));
+
+  loadEvents();
+});
+
+loadEvents();
+
 </script>
 
-<!-- FullCalendar JS -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
-
-
-<script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
 </body>
 </html>

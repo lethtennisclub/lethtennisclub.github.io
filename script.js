@@ -1,15 +1,15 @@
 import { db, collection, getDocs } from './firebase.js';
 
 async function loadEvents() {
-  const snap = await getDocs(collection(db,"events"));
+  const snap = await getDocs(collection(db, 'events'));
 
   const events = [];
 
-  snap.forEach(d => {
-    const data = d.data();
+  snap.forEach(doc => {
+    const data = doc.data();
 
     events.push({
-      id: d.id,
+      id: doc.id,
       title: data.title,
       start: data.start,
       end: data.end
@@ -19,17 +19,24 @@ async function loadEvents() {
   return events;
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
-  const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+  const calendarEl = document.getElementById('calendar');
 
-    initialView: "dayGridMonth",
+  const calendar = new FullCalendar.Calendar(calendarEl, {
 
-    events: async (info, success) => {
-      const events = await loadEvents();
-      success(events);
+    initialView: 'dayGridMonth',
+    height: 650,
+
+    events: async (info, success, failure) => {
+      try {
+        const events = await loadEvents();
+        success(events);
+      } catch (e) {
+        console.error(e);
+        failure(e);
+      }
     }
-
   });
 
   calendar.render();
