@@ -15,10 +15,8 @@ body {
   color:#14532d;
 }
 
-.hidden { display:none; }
-
 .box {
-  max-width:600px;
+  max-width:700px;
   margin:0 auto 2rem;
   background:white;
   padding:2rem;
@@ -44,59 +42,54 @@ button {
 button:hover { background:#166534; }
 
 .event {
-  display:flex;
-  justify-content:space-between;
-  padding:0.5rem 0;
+  padding:0.4rem 0;
   border-bottom:1px solid #eee;
 }
 
-.event button {
-  background:#b91c1c;
-  width:auto;
-  padding:0.2rem 0.6rem;
+summary {
+  cursor:pointer;
+  font-weight:bold;
+  margin:0.5rem 0;
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
-<div id="loginBox" class="box">
-  <h2>Admin Login</h2>
+<div class="box">
+  <h2>Add Event</h2>
 
-  <input id="email" type="email" placeholder="Email" />
-  <input id="password" type="password" placeholder="Password" />
+  <input id="title" placeholder="Title" />
+  <input id="date" type="date" />
+  <input id="start" placeholder="Start (18:00)" />
+  <input id="end" placeholder="End (19:00)" />
 
-  <button id="loginBtn">Login</button>
-  <p id="error" style="color:red;"></p>
+  <select id="repeat">
+    <option value="none">No repeat</option>
+    <option value="weekly">Weekly</option>
+  </select>
+
+  <div id="repeatOptions" style="display:none; margin-top:1rem;">
+    <label>Repeat Days:</label>
+
+    <label><input type="checkbox" class="day" value="1"> Mon</label>
+    <label><input type="checkbox" class="day" value="2"> Tue</label>
+    <label><input type="checkbox" class="day" value="3"> Wed</label>
+    <label><input type="checkbox" class="day" value="4"> Thu</label>
+    <label><input type="checkbox" class="day" value="5"> Fri</label>
+    <label><input type="checkbox" class="day" value="6"> Sat</label>
+    <label><input type="checkbox" class="day" value="0"> Sun</label>
+
+    <label style="margin-top:1rem;">Repeat Until</label>
+    <input type="date" id="until" />
+  </div>
+
+  <button id="addBtn">Add Event</button>
 </div>
 
-<!-- ADMIN -->
-<div id="adminBox" class="hidden">
-
-  <h1 style="text-align:center;">Calendar Admin</h1>
-
-  <div class="box">
-    <h3>Add Event</h3>
-
-    <input id="title" placeholder="Title" />
-    <input id="date" type="date" />
-    <input id="start" placeholder="Start (18:00)" />
-    <input id="end" placeholder="End (19:00)" />
-
-    <select id="repeat">
-      <option value="none">No repeat</option>
-      <option value="weekly">Weekly</option>
-    </select>
-
-    <button id="addBtn">Add Event</button>
-  </div>
-
-  <div class="box">
-    <h3>Events</h3>
-    <div id="list"></div>
-  </div>
-
+<div class="box">
+  <h2>Events</h2>
+  <div id="list"></div>
 </div>
 
 <script type="module">
@@ -113,7 +106,6 @@ import {
 
 import {
   getAuth,
-  signInWithEmailAndPassword,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
 
@@ -130,102 +122,104 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// DOM
-const loginBox = document.getElementById("loginBox");
-const adminBox = document.getElementById("adminBox");
-
-// ===== LOGIN =====
-document.getElementById("loginBtn").onclick = async () => {
-  try {
-    await signInWithEmailAndPassword(
-      auth,
-      email.value,
-      password.value
-    );
-  } catch (e) {
-    document.getElementById("error").innerText = e.message;
-  }
-};
-
-// ===== AUTH FLOW (КАК В ТВОЕЙ РАБОЧЕЙ АДМИНКЕ) =====
+// AUTH (как в админке)
 onAuthStateChanged(auth, (user) => {
-
-  if (user) {
-    loginBox.style.display = "none";
-    adminBox.classList.remove("hidden");
-
-    // ВАЖНО: грузим только после login
-    loadEvents();
-
+  if (!user) {
+    alert("Not authorized");
   } else {
-    loginBox.style.display = "block";
-    adminBox.classList.add("hidden");
+    loadEvents();
   }
 });
 
-// ===== ADD EVENT =====
+// repeat toggle
+document.getElementById("repeat").onchange = (e) => {
+  document.getElementById("repeatOptions").style.display =
+    e.target.value === "weekly" ? "block" : "none";
+};
+
+// ADD EVENT
 document.getElementById("addBtn").onclick = async () => {
 
   const title = document.getElementById("title").value;
   const date = document.getElementById("date").value;
   const start = document.getElementById("start").value;
   const end = document.getElementById("end").value;
-  const repeat = document.getElementById("repeat").value;
 
-  if (!title || !date) return alert("Fill required fields");
+  const repeatType = document.getElementById("repeat").value;
+
+  const days = [...document.querySelectorAll(".day:checked")]
+    .map(d => Number(d.value));
+
+  const until = document.getElementById("until").value;
 
   await addDoc(collection(db, "events"), {
     title,
     date,
     start,
     end,
-    repeat
+    repeat: repeatType,
+    repeatDays: days,
+    repeatUntil: until
   });
 
   loadEvents();
 };
 
-// ===== LOAD EVENTS =====
+// FORMAT DATE
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+// LOAD EVENTS
 async function loadEvents() {
   const list = document.getElementById("list");
   list.innerHTML = "";
 
   const snap = await getDocs(collection(db, "events"));
 
-  if (snap.empty) {
-    list.innerHTML = "<p>No events</p>";
-    return;
-  }
-
   const grouped = {};
 
   snap.forEach(d => {
     const ev = d.data();
-    if (!grouped[ev.title]) grouped[ev.title] = [];
-    grouped[ev.title].push({ id: d.id, ...ev });
+    const key = ev.title || "Untitled Event";
+
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push({ id: d.id, ...ev });
   });
 
   Object.keys(grouped).forEach(title => {
-    const block = document.createElement("div");
-    block.innerHTML = `<h4>${title}</h4>`;
+
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+
+    summary.textContent = title;
+    details.appendChild(summary);
 
     grouped[title].forEach(ev => {
-      const row = document.createElement("div");
-      row.className = "event";
 
-      row.innerHTML = `
-        <div>${ev.date} | ${ev.start}-${ev.end} ${ev.repeat === "weekly" ? "🔁" : ""}</div>
-        <button onclick="del('${ev.id}')">X</button>
+      const div = document.createElement("div");
+      div.className = "event";
+
+      div.innerHTML = `
+        ${formatDate(ev.date)} | ${ev.start || ""}-${ev.end || ""}
+        ${ev.repeat === "weekly" ? " 🔁" : ""}
       `;
 
-      block.appendChild(row);
+      details.appendChild(div);
     });
 
-    list.appendChild(block);
+    list.appendChild(details);
   });
 }
 
-// ===== DELETE =====
+// DELETE
 window.del = async (id) => {
   await deleteDoc(doc(db, "events", id));
   loadEvents();
