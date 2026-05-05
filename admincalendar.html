@@ -1,202 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Calendar Panel</title>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      font-family: 'EB Garamond', serif;
-      background-color: #f0fdf4;
-      color: #14532d;
-      padding: 2rem;
-      margin: 0;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 2rem;
-      color: #1c4532;
-    }
-    form {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      max-width: 600px;
-      margin: 0 auto 2rem auto;
-      box-shadow: 0 0 10px rgba(20, 83, 45, 0.1);
-    }
-    label {
-      display: block;
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-    input, select, button {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.25rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-    }
-    .repeat-days {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-top: 0.5rem;
-    }
-    .repeat-days label {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-weight: normal;
-    }
-    button {
-      background-color: #15803d;
-      color: white;
-      margin-top: 1.5rem;
-      cursor: pointer;
-      border: none;
-      font-size: 1rem;
-    }
-    button:hover {
-      background-color: #166534;
-    }
-    .events-list {
-      max-width: 800px;
-      margin: 0 auto 2rem auto;
-    }
-    details {
-      background: white;
-      border-radius: 12px;
-      padding: 1rem 2rem;
-      box-shadow: 0 0 10px rgba(20, 83, 45, 0.1);
-      margin-bottom: 1rem;
-    }
-    summary {
-      font-size: 1.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      color: #14532d;
-      margin-bottom: 1rem;
-      outline-offset: 4px;
-    }
-    .event-item {
-      padding: 1rem 0;
-      border-bottom: 1px solid #ccc;
-    }
-    .event-item:last-child {
-      border-bottom: none;
-    }
-    .event-item button {
-      background-color: #b91c1c;
-      margin-top: 0.5rem;
-      border: none;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      color: white;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .event-item button:hover {
-      background-color: #7f1d1d;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Calendar</title>
+
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet" />
+
+<style>
+body {
+  font-family: 'EB Garamond', serif;
+  background:#f0fdf4;
+  padding:2rem;
+  color:#14532d;
+}
+
+.hidden { display:none; }
+
+.box {
+  max-width:600px;
+  margin:0 auto 2rem;
+  background:white;
+  padding:2rem;
+  border-radius:12px;
+  box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+input, select, button {
+  width:100%;
+  padding:0.6rem;
+  margin-top:0.5rem;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+button {
+  background:#15803d;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+
+button:hover { background:#166534; }
+
+.event {
+  display:flex;
+  justify-content:space-between;
+  padding:0.5rem 0;
+  border-bottom:1px solid #eee;
+}
+
+.event button {
+  background:#b91c1c;
+  width:auto;
+  padding:0.2rem 0.6rem;
+}
+</style>
 </head>
+
 <body>
 
-  <h1>Admin Calendar Panel</h1>
+<!-- LOGIN -->
+<div id="loginBox" class="box">
+  <h2>Admin Login</h2>
 
-  <form id="event-form">
-    <label for="title">Event Title:</label>
-    <input type="text" id="title" required />
+  <input id="email" type="email" placeholder="Email" />
+  <input id="password" type="password" placeholder="Password" />
 
-    <label for="hourStart">Start Hour:</label>
-    <select id="hourStart"></select>
+  <button id="loginBtn">Login</button>
+  <p id="error" style="color:red;"></p>
+</div>
 
-    <label for="minuteStart">Start Minute:</label>
-    <select id="minuteStart"></select>
+<!-- ADMIN -->
+<div id="adminBox" class="hidden">
 
-    <label for="hourEnd">End Hour:</label>
-    <select id="hourEnd"></select>
+  <h1 style="text-align:center;">Calendar Admin</h1>
 
-    <label for="minuteEnd">End Minute:</label>
-    <select id="minuteEnd"></select>
+  <div class="box">
+    <h3>Add Event</h3>
 
-    <label for="recurrence">Repeat Weekly?</label>
-    <select id="recurrence">
-      <option value="none">No</option>
-      <option value="weekly">Yes</option>
+    <input id="title" placeholder="Title" />
+    <input id="date" type="date" />
+    <input id="start" placeholder="Start (18:00)" />
+    <input id="end" placeholder="End (19:00)" />
+
+    <select id="repeat">
+      <option value="none">No repeat</option>
+      <option value="weekly">Weekly</option>
     </select>
 
-    <div id="repeat-options" style="display: none;">
-      <label>Days of Week:</label>
-      <div class="repeat-days">
-        <label><input type="checkbox" value="0" class="repeat-day" /> Sun</label>
-        <label><input type="checkbox" value="1" class="repeat-day" /> Mon</label>
-        <label><input type="checkbox" value="2" class="repeat-day" /> Tue</label>
-        <label><input type="checkbox" value="3" class="repeat-day" /> Wed</label>
-        <label><input type="checkbox" value="4" class="repeat-day" /> Thu</label>
-        <label><input type="checkbox" value="5" class="repeat-day" /> Fri</label>
-        <label><input type="checkbox" value="6" class="repeat-day" /> Sat</label>
-      </div>
+    <button id="addBtn">Add Event</button>
+  </div>
 
-      <label for="repeat-start">Repeat Start Date:</label>
-      <input type="date" id="repeat-start" />
+  <div class="box">
+    <h3>Events</h3>
+    <div id="list"></div>
+  </div>
 
-      <label for="repeat-end">Repeat End Date:</label>
-      <input type="date" id="repeat-end" />
-    </div>
+</div>
 
-    <label for="date">Single Date (if not repeating):</label>
-    <input type="date" id="date" />
+<script type="module">
 
-    <button type="submit">Add Event</button>
-  </form>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
-  <section class="events-list">
-    <details id="upcoming-events">
-      <summary>Upcoming Events</summary>
-      <div id="upcoming-container"></div>
-    </details>
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
 
-    <details id="past-events">
-      <summary>Past Events</summary>
-      <div id="past-container"></div>
-    </details>
-  </section>
+const firebaseConfig = {
+  apiKey: "AIzaSyD5iFrQ4uprmeVeJCyKMiTDXk2T_k1sv4I",
+  authDomain: "ltc-website-8a884.firebaseapp.com",
+  projectId: "ltc-website-8a884",
+  storageBucket: "ltc-website-8a884.appspot.com",
+  messagingSenderId: "1059988013295",
+  appId: "1:1059988013295:web:505d59225c70675247db1a"
+};
 
-  <button id="delete-all" style="background-color:#b91c1c;color:white;border:none;padding:0.75rem 1.5rem;border-radius:6px;cursor:pointer;margin:0 auto;display:block;">Delete All Events</button>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-  <script>
-    // Наполнение селектов для часов и минут
-    const hourSelects = ["hourStart", "hourEnd"];
-    const minuteSelects = ["minuteStart", "minuteEnd"];
+// DOM
+const loginBox = document.getElementById("loginBox");
+const adminBox = document.getElementById("adminBox");
 
-    hourSelects.forEach(id => {
-      const select = document.getElementById(id);
-      for (let h = 6; h <= 21; h++) {
-        const option = document.createElement("option");
-        option.value = option.textContent = h.toString().padStart(2, '0');
-        select.appendChild(option);
-      }
+// ===== LOGIN =====
+document.getElementById("loginBtn").onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    );
+  } catch (e) {
+    document.getElementById("error").innerText = e.message;
+  }
+};
+
+// ===== AUTH FLOW (КАК В ТВОЕЙ РАБОЧЕЙ АДМИНКЕ) =====
+onAuthStateChanged(auth, (user) => {
+
+  if (user) {
+    loginBox.style.display = "none";
+    adminBox.classList.remove("hidden");
+
+    // ВАЖНО: грузим только после login
+    loadEvents();
+
+  } else {
+    loginBox.style.display = "block";
+    adminBox.classList.add("hidden");
+  }
+});
+
+// ===== ADD EVENT =====
+document.getElementById("addBtn").onclick = async () => {
+
+  const title = document.getElementById("title").value;
+  const date = document.getElementById("date").value;
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+  const repeat = document.getElementById("repeat").value;
+
+  if (!title || !date) return alert("Fill required fields");
+
+  await addDoc(collection(db, "events"), {
+    title,
+    date,
+    start,
+    end,
+    repeat
+  });
+
+  loadEvents();
+};
+
+// ===== LOAD EVENTS =====
+async function loadEvents() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  const snap = await getDocs(collection(db, "events"));
+
+  if (snap.empty) {
+    list.innerHTML = "<p>No events</p>";
+    return;
+  }
+
+  const grouped = {};
+
+  snap.forEach(d => {
+    const ev = d.data();
+    if (!grouped[ev.title]) grouped[ev.title] = [];
+    grouped[ev.title].push({ id: d.id, ...ev });
+  });
+
+  Object.keys(grouped).forEach(title => {
+    const block = document.createElement("div");
+    block.innerHTML = `<h4>${title}</h4>`;
+
+    grouped[title].forEach(ev => {
+      const row = document.createElement("div");
+      row.className = "event";
+
+      row.innerHTML = `
+        <div>${ev.date} | ${ev.start}-${ev.end} ${ev.repeat === "weekly" ? "🔁" : ""}</div>
+        <button onclick="del('${ev.id}')">X</button>
+      `;
+
+      block.appendChild(row);
     });
 
-    minuteSelects.forEach(id => {
-      const select = document.getElementById(id);
-      ["00", "30"].forEach(m => {
-        const option = document.createElement("option");
-        option.value = option.textContent = m;
-        select.appendChild(option);
-      });
-    });
+    list.appendChild(block);
+  });
+}
 
-    document.getElementById("recurrence").addEventListener("change", function () {
-      document.getElementById("repeat-options").style.display = this.value === "weekly" ? "block" : "none";
-    });
-  </script>
+// ===== DELETE =====
+window.del = async (id) => {
+  await deleteDoc(doc(db, "events", id));
+  loadEvents();
+};
 
-  <script type="module" src="adminscript.js"></script>
+</script>
 
 </body>
 </html>
