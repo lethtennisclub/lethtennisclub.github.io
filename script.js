@@ -8,20 +8,21 @@ async function loadEvents() {
   const events = [];
 
   eventsSnapshot.forEach(doc => {
+    console.log(data);
     const data = doc.data();
-
     // Даты в Firestore — строки ISO, просто используем их
     const start = data.start;           // например "2025-07-19T18:00:00"
     const end = data.end || null;
 
     events.push({
-      id: doc.id,
-      title: data.title,
-      start,
-      end,
-      rrule: data.rrule || null,       // если есть правило повторения
-      allDay: false,
-    });
+  id: doc.id,
+  title: data.title || "No title",
+
+  start: data.start,
+  end: data.end || undefined,
+
+  allDay: false
+});
   });
 
   return events;
