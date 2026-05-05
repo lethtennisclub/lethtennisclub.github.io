@@ -5,11 +5,11 @@ async function loadEvents() {
 
   const events = [];
 
-  snap.forEach(doc => {
-    const data = doc.data();
+  snap.forEach(d => {
+    const data = d.data();
 
     events.push({
-      id: doc.id,
+      id: d.id,
       title: data.title,
       start: data.start,
       end: data.end
@@ -21,23 +21,23 @@ async function loadEvents() {
 
 document.addEventListener('DOMContentLoaded', async () => {
 
-  const calendarEl = document.getElementById('calendar');
+  const calendar = new FullCalendar.Calendar(
+    document.getElementById('calendar'),
+    {
+      initialView: 'dayGridMonth',
+      height: 650,
 
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-
-    initialView: 'dayGridMonth',
-    height: 650,
-
-    events: async (info, success, failure) => {
-      try {
-        const events = await loadEvents();
-        success(events);
-      } catch (e) {
-        console.error(e);
-        failure(e);
+      events: async (info, success, failure) => {
+        try {
+          const events = await loadEvents();
+          success(events);
+        } catch (e) {
+          console.error(e);
+          failure(e);
+        }
       }
     }
-  });
+  );
 
   calendar.render();
 });

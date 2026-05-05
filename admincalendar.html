@@ -39,6 +39,15 @@ button {
 
 button:hover { background:#166534; }
 
+.row {
+  display:flex;
+  gap:10px;
+}
+
+.row > select {
+  flex:1;
+}
+
 .event {
   display:flex;
   justify-content:space-between;
@@ -52,21 +61,17 @@ button:hover { background:#166534; }
   background:#b91c1c;
   padding:0.3rem 0.6rem;
 }
-
 .delBtn:hover { background:#7f1d1d; }
 
-details {
-  margin-bottom:1rem;
-}
-
-summary {
-  cursor:pointer;
-  font-weight:600;
-}
+details { margin-bottom:1rem; }
+summary { cursor:pointer; font-weight:600; }
 
 small { color:#6b7280; }
 
-.hidden { display:none; }
+#repeatBox {
+  display:none;
+  margin-top:1rem;
+}
 </style>
 </head>
 
@@ -76,14 +81,14 @@ small { color:#6b7280; }
   <h2>Add Event</h2>
 
   <input id="title" placeholder="Title" />
+
   <input id="date" type="date" />
 
-  <!-- HOURS ONLY -->
-  <label>Start hour</label>
-  <select id="startHour"></select>
-
-  <label>End hour</label>
-  <select id="endHour"></select>
+  <!-- TIME PICKERS -->
+  <div class="row">
+    <select id="start"></select>
+    <select id="end"></select>
+  </div>
 
   <select id="repeat">
     <option value="none">No repeat</option>
@@ -91,26 +96,27 @@ small { color:#6b7280; }
   </select>
 
   <!-- WEEKLY OPTIONS -->
-  <details id="weeklyBox">
-    <summary>Weekly settings</summary>
+  <div id="repeatBox">
 
-    <div>
-      <label><input type="checkbox" class="day" value="1"> Mon</label>
-      <label><input type="checkbox" class="day" value="2"> Tue</label>
-      <label><input type="checkbox" class="day" value="3"> Wed</label>
-      <label><input type="checkbox" class="day" value="4"> Thu</label>
-      <label><input type="checkbox" class="day" value="5"> Fri</label>
-      <label><input type="checkbox" class="day" value="6"> Sat</label>
-      <label><input type="checkbox" class="day" value="0"> Sun</label>
-    </div>
+    <p><b>Repeat days:</b></p>
 
-    <br/>
+    <label><input type="checkbox" value="1" class="day"> Mon</label>
+    <label><input type="checkbox" value="2" class="day"> Tue</label>
+    <label><input type="checkbox" value="3" class="day"> Wed</label>
+    <label><input type="checkbox" value="4" class="day"> Thu</label>
+    <label><input type="checkbox" value="5" class="day"> Fri</label>
+    <label><input type="checkbox" value="6" class="day"> Sat</label>
+    <label><input type="checkbox" value="0" class="day"> Sun</label>
+
+    <br><br>
 
     <label>Repeat end date</label>
     <input type="date" id="repeatEnd" />
-  </details>
+
+  </div>
 
   <button id="addBtn">Add Event</button>
+
   <button id="deleteAll" style="margin-top:1rem;background:#7f1d1d;">
     Delete ALL
   </button>
@@ -122,6 +128,7 @@ small { color:#6b7280; }
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import {
   getFirestore,
@@ -129,7 +136,8 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc
+  doc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -141,31 +149,33 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ===== HOURS DROPDOWN (8–23) =====
-const startHour = document.getElementById("startHour");
-const endHour = document.getElementById("endHour");
+// ===== TIME OPTIONS =====
+function fillTimes() {
+  const start = document.getElementById("start");
+  const end = document.getElementById("end");
 
-for (let h = 8; h <= 23; h++) {
-  const opt1 = new Option(`${h}:00`, `${h}:00`);
-  const opt2 = new Option(`${h}:00`, `${h}:00`);
-  startHour.add(opt1);
-  endHour.add(opt2);
+  for (let h = 8; h <= 23; h++) {
+    const t = `${String(h).padStart(2,'0')}:00`;
+
+    start.innerHTML += `<option value="${t}">${t}</option>`;
+    end.innerHTML += `<option value="${t}">${t}</option>`;
+  }
 }
+fillTimes();
 
-// ===== WEEKLY TOGGLE =====
+// ===== REPEAT UI =====
 document.getElementById("repeat").onchange = (e) => {
-  document.getElementById("weeklyBox").open = e.target.value === "weekly";
+  document.getElementById("repeatBox").style.display =
+    e.target.value === "weekly" ? "block" : "none";
 };
 
 // ===== ADD EVENT =====
 document.getElementById("addBtn").onclick = async () => {
 
-  const title = document.getElementById("title").value;
-  const date = document.getElementById("date").value;
-
-  const startHourVal = startHour.value;
-  const endHourVal = endHour.value;
-
+  const title = titleInput.value;
+  const date = date.value;
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
   const repeat = document.getElementById("repeat").value;
 
   const days = [...document.querySelectorAll(".day:checked")]
@@ -173,17 +183,19 @@ document.getElementById("addBtn").onclick = async () => {
 
   const repeatEnd = document.getElementById("repeatEnd").value;
 
-  await addDoc(collection(db, "events"), {
+  const startISO = `${date}T${start}:00`;
+  const endISO = `${date}T${end}:00`;
+
+  await addDoc(collection(db,"events"), {
     title,
-    start: `${date}T${startHourVal}:00`,
-    end: `${date}T${endHourVal}:00`,
-    recurrence: repeat === "weekly"
-      ? {
-          weekly: true,
-          days,
-          repeatEnd
-        }
-      : null
+    start: startISO,
+    end: endISO,
+    recurrence: {
+      weekly: repeat === "weekly",
+      days,
+      repeatEnd,
+      repeatStart: date
+    }
   });
 
   loadEvents();
@@ -191,15 +203,16 @@ document.getElementById("addBtn").onclick = async () => {
 
 // ===== LOAD EVENTS =====
 async function loadEvents() {
+
+  const snap = await getDocs(collection(db,"events"));
   const list = document.getElementById("list");
   list.innerHTML = "";
-
-  const snap = await getDocs(collection(db, "events"));
 
   const grouped = {};
 
   snap.forEach(d => {
     const ev = { id: d.id, ...d.data() };
+
     if (!grouped[ev.title]) grouped[ev.title] = [];
     grouped[ev.title].push(ev);
   });
@@ -218,13 +231,12 @@ async function loadEvents() {
 
       row.innerHTML = `
         <div>
-          <b>${new Date(ev.start).toDateString()}</b><br/>
+          ${new Date(ev.start).toDateString()}<br/>
           <small>${ev.start.slice(11,16)} - ${ev.end.slice(11,16)}</small>
+          ${ev.recurrence?.weekly ? " 🔁" : ""}
         </div>
 
-        <button class="delBtn" data-id="${ev.id}">
-          Delete
-        </button>
+        <button class="delBtn" data-id="${ev.id}">Delete</button>
       `;
 
       details.appendChild(row);
@@ -238,18 +250,16 @@ async function loadEvents() {
 document.addEventListener("click", async (e) => {
   if (!e.target.classList.contains("delBtn")) return;
 
-  const id = e.target.dataset.id;
-
-  await deleteDoc(doc(db, "events", id));
+  await deleteDoc(doc(db,"events", e.target.dataset.id));
   loadEvents();
 });
 
 // ===== DELETE ALL =====
 document.getElementById("deleteAll").onclick = async () => {
-  const snap = await getDocs(collection(db, "events"));
+  const snap = await getDocs(collection(db,"events"));
 
   for (let d of snap.docs) {
-    await deleteDoc(doc(db, "events", d.id));
+    await deleteDoc(doc(db,"events", d.id));
   }
 
   loadEvents();
@@ -258,5 +268,6 @@ document.getElementById("deleteAll").onclick = async () => {
 loadEvents();
 
 </script>
+
 </body>
 </html>
