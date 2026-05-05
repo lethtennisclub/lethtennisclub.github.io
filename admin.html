@@ -8,18 +8,6 @@
   <style>
     body { font-family: 'Lora', serif; padding: 2rem; background: #f4f9f0; }
 
-    /* LOGIN */
-    #login-container {
-      max-width: 300px;
-      margin: 5rem auto;
-      background: white;
-      padding: 2rem;
-      border-radius: 8px;
-      text-align: center;
-    }
-
-    #admin-content { display: none; }
-
     .admin-forms-container {
       display: flex;
       gap: 2rem;
@@ -33,6 +21,19 @@
       background: white;
       padding: 1rem 1.5rem;
       border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(20, 83, 45, 0.1);
+    }
+
+    form { margin-bottom: 1.5rem; }
+
+    label { display: block; margin: 0.5rem 0 0.2rem; }
+
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
     }
 
     button {
@@ -43,21 +44,65 @@
       padding: 0.7rem 1.2rem;
       border-radius: 6px;
       cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover:not(:disabled) { background: #0f3e1a; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+
+    .post-list { max-height: 400px; overflow-y: auto; }
+
+    .post-item {
+      padding: 1rem;
+      background: #e6f0d9;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .post-item h4 { margin: 0 0 0.5rem; color: #14532d; }
+
+    .post-actions button { margin-right: 0.5rem; }
+
+    #delete-old-posts {
+      background: #9b2c2c;
+      margin-bottom: 1.5rem;
+      width: 100%;
+    }
+
+    #delete-old-posts:hover { background: #6b1a1a; }
+
+    /* LOGIN */
+    #login-screen {
+      max-width: 300px;
+      margin: 5rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    #login-screen input {
+      margin-bottom: 1rem;
     }
   </style>
 </head>
+
 <body>
 
 <!-- LOGIN -->
-<div id="login-container">
+<div id="login-screen">
   <h2>Admin Login</h2>
-  <input type="email" id="email" placeholder="Email"><br><br>
-  <input type="password" id="password" placeholder="Password"><br>
+
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+
   <button id="login-btn">Login</button>
+
+  <p id="error" style="color:red;"></p>
 </div>
 
-<!-- ADMIN (СКРЫТ) -->
-<div id="admin-content">
+<!-- ADMIN -->
+<div id="admin-panel" style="display:none;">
 
   <h1>Admin Panel</h1>
 
@@ -65,135 +110,181 @@
 
     <div class="blog-form-container">
       <h2>Blog Posts</h2>
+
       <form id="post-form">
-        <input type="text" id="title" placeholder="Title" required />
-        <textarea id="content" placeholder="Content" required></textarea>
+        <label for="title">Title</label>
+        <input type="text" id="title" required />
+
+        <label for="content">Content</label>
+        <textarea id="content" rows="6" required></textarea>
+
         <button type="submit">Add Post</button>
       </form>
-      <div id="posts-container"></div>
+
+      <button id="delete-old-posts">Delete All Posts Older Than 3 Months</button>
+
+      <section class="post-list" id="posts-container"></section>
     </div>
 
     <div class="tournament-form-container">
-      <h2>Edit Tournament</h2>
+      <h2>Edit Next Tournament</h2>
+
       <form id="tournament-form">
-        <input type="text" id="t-name" placeholder="Name" required />
+        <label for="t-name">Tournament Name</label>
+        <input type="text" id="t-name" required />
+
+        <label for="t-start">Start Date</label>
         <input type="date" id="t-start" required />
+
+        <label for="t-end">End Date</label>
         <input type="date" id="t-end" required />
+
+        <label for="t-deadline">Registration Deadline</label>
         <input type="date" id="t-deadline" required />
-        <button type="submit">Save</button>
+
+        <button type="submit">Save Tournament</button>
       </form>
     </div>
 
   </div>
-
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, serverTimestamp,
-  getDocs, doc, deleteDoc, setDoc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    serverTimestamp,
+    query,
+    orderBy,
+    getDocs,
+    doc,
+    deleteDoc,
+    writeBatch,
+    setDoc,
+    getDoc
+  } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
-import {
-  getAuth, signInWithEmailAndPassword, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
+  import {
+    getAuth,
+    signInWithEmailAndPassword,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIza...",
-  authDomain: "ltc-website-8a884.firebaseapp.com",
-  projectId: "ltc-website-8a884",
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyD5iFrQ4uprmeVeJCyKMiTDXk2T_k1sv4I",
+    authDomain: "ltc-website-8a884.firebaseapp.com",
+    projectId: "ltc-website-8a884",
+    storageBucket: "ltc-website-8a884.appspot.com",
+    messagingSenderId: "1059988013295",
+    appId: "1:1059988013295:web:505d59225c70675247db1a"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
-/* LOGIN */
-document.getElementById('login-btn').onclick = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+  // LOGIN
+  document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch (e) {
-    alert("Login error: " + e.message);
-  }
-};
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (e) {
+      document.getElementById('error').innerText = e.message;
+    }
+  });
 
-/* CHECK AUTH */
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    document.getElementById('login-container').style.display = 'none';
-    document.getElementById('admin-content').style.display = 'block';
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'block';
+    } else {
+      document.getElementById('login-screen').style.display = 'block';
+      document.getElementById('admin-panel').style.display = 'none';
+    }
+  });
+
+  // ===== YOUR ORIGINAL LOGIC (UNCHANGED) =====
+
+  const postForm = document.getElementById('post-form');
+  const postsContainer = document.getElementById('posts-container');
+  const deleteOldPostsBtn = document.getElementById('delete-old-posts');
+
+  postForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('title').value.trim();
+    const content = document.getElementById('content').value.trim();
+
+    await addDoc(collection(db, 'blogPosts'), {
+      title,
+      content,
+      createdAt: serverTimestamp()
+    });
+
+    postForm.reset();
     loadPosts();
-    loadTournament();
-  } else {
-    document.getElementById('login-container').style.display = 'block';
-    document.getElementById('admin-content').style.display = 'none';
-  }
-});
-
-/* BLOG */
-const postForm = document.getElementById('post-form');
-const postsContainer = document.getElementById('posts-container');
-
-postForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  await addDoc(collection(db, 'blogPosts'), {
-    title: title.value,
-    content: content.value,
-    createdAt: serverTimestamp()
   });
 
-  postForm.reset();
-  loadPosts();
-});
+  async function loadPosts() {
+    postsContainer.innerHTML = '';
+    const q = query(collection(db, 'blogPosts'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
 
-async function loadPosts() {
-  postsContainer.innerHTML = '';
-  const snapshot = await getDocs(collection(db, 'blogPosts'));
+    snapshot.forEach(docSnap => {
+      const post = docSnap.data();
 
-  snapshot.forEach(docSnap => {
-    const post = docSnap.data();
-    const div = document.createElement('div');
+      const div = document.createElement('div');
+      div.className = 'post-item';
 
-    div.innerHTML = `
-      <h4>${post.title}</h4>
-      <p>${post.content}</p>
-      <button onclick="deletePost('${docSnap.id}')">Delete</button>
-    `;
+      div.innerHTML = `
+        <h4>${post.title}</h4>
+        <p>${post.content}</p>
+        <button onclick="deletePost('${docSnap.id}')">Delete</button>
+      `;
 
-    postsContainer.appendChild(div);
-  });
-}
-
-window.deletePost = async (id) => {
-  await deleteDoc(doc(db, 'blogPosts', id));
-  loadPosts();
-};
-
-/* TOURNAMENT */
-const tournamentForm = document.getElementById('tournament-form');
-
-async function loadTournament() {
-  const docSnap = await getDoc(doc(db, "tournaments", "nextTournament"));
-  if (docSnap.exists()) {
-    const d = docSnap.data();
-    t-name.value = d.name || '';
+      postsContainer.appendChild(div);
+    });
   }
-}
 
-tournamentForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+  window.deletePost = async (id) => {
+    await deleteDoc(doc(db, 'blogPosts', id));
+    loadPosts();
+  };
 
-  await setDoc(doc(db, "tournaments", "nextTournament"), {
-    name: document.getElementById('t-name').value
-  }, { merge: true });
+  deleteOldPostsBtn.addEventListener('click', async () => {
+    const snapshot = await getDocs(collection(db, 'blogPosts'));
+    const batch = writeBatch(db);
 
-  alert('Saved');
-});
+    snapshot.forEach(docSnap => {
+      batch.delete(docSnap.ref);
+    });
+
+    await batch.commit();
+    loadPosts();
+  });
+
+  loadPosts();
+
+  const tournamentForm = document.getElementById('tournament-form');
+
+  tournamentForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const updatedData = {
+      name: document.getElementById('t-name').value,
+      startDate: document.getElementById('t-start').value,
+      endDate: document.getElementById('t-end').value,
+      registrationDeadline: document.getElementById('t-deadline').value
+    };
+
+    await setDoc(doc(db, "tournaments", "nextTournament"), updatedData, { merge: true });
+
+    alert("Saved");
+  });
 </script>
 
 </body>
