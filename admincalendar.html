@@ -2,24 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Admin Calendar</title>
 
 <style>
 body {
-  font-family: system-ui, sans-serif;
+  font-family: system-ui;
   background:#f0fdf4;
   padding:2rem;
   color:#14532d;
 }
 
 .box {
-  max-width:750px;
-  margin:0 auto 2rem;
+  max-width:800px;
+  margin:auto;
   background:white;
   padding:2rem;
   border-radius:12px;
   box-shadow:0 10px 25px rgba(0,0,0,0.08);
+  margin-bottom:2rem;
 }
 
 input, select, button {
@@ -37,9 +37,7 @@ button {
   cursor:pointer;
 }
 
-button:hover {
-  background:#166534;
-}
+button:hover { background:#166534; }
 
 .event {
   display:flex;
@@ -49,17 +47,21 @@ button:hover {
   align-items:center;
 }
 
-small { color:#6b7280; }
-
 .delBtn {
   width:auto;
   background:#b91c1c;
   padding:0.3rem 0.6rem;
-  border-radius:6px;
 }
-.delBtn:hover {
-  background:#7f1d1d;
+.delBtn:hover { background:#7f1d1d; }
+
+details {
+  margin-bottom:1rem;
 }
+summary {
+  cursor:pointer;
+  font-weight:600;
+}
+small { color:#6b7280; }
 </style>
 </head>
 
@@ -69,9 +71,11 @@ small { color:#6b7280; }
   <h2>Add Event</h2>
 
   <input id="title" placeholder="Title" />
+
   <input id="date" type="date" />
-  <input id="start" placeholder="Start (18:00)" />
-  <input id="end" placeholder="End (19:00)" />
+
+  <input id="start" type="time" />
+  <input id="end" type="time" />
 
   <select id="repeat">
     <option value="none">No repeat</option>
@@ -79,6 +83,10 @@ small { color:#6b7280; }
   </select>
 
   <button id="addBtn">Add Event</button>
+
+  <button id="deleteAll" style="margin-top:1rem;background:#7f1d1d;">
+    Delete ALL events
+  </button>
 </div>
 
 <div class="box">
@@ -95,102 +103,78 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc
+  doc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD5iFrQ4uprmeVeJCyKMiTDXk2T_k1sv4I",
   authDomain: "ltc-website-8a884.firebaseapp.com",
-  projectId: "ltc-website-8a884",
-  storageBucket: "ltc-website-8a884.appspot.com",
-  messagingSenderId: "1059988013295",
-  appId: "1:1059988013295:web:505d59225c70675247db1a"
+  projectId: "ltc-website-8a884"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-
-// ===================== ADD EVENT =====================
+// ===== ADD EVENT =====
 document.getElementById("addBtn").onclick = async () => {
 
-  const title = document.getElementById("title").value.trim();
-  const date = document.getElementById("date").value;
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
-  const repeat = document.getElementById("repeat").value;
+  const title = titleInput.value;
+  const date = dateInput.value;
+  const start = startInput.value;
+  const end = endInput.value;
+  const repeat = repeatInput.value;
 
-  if (!title || !date) {
-    alert("Fill title and date");
-    return;
-  }
+  const startISO = `${date}T${start}`;
+  const endISO = `${date}T${end}`;
 
-  await addDoc(collection(db, "events"), {
+  await addDoc(collection(db,"events"), {
     title,
-    date,
-    start,
-    end,
-    repeat
+    start: startISO,
+    end: endISO,
+    repeat,
+    createdAt: serverTimestamp()
   });
-
-  document.getElementById("title").value = "";
-  document.getElementById("date").value = "";
-  document.getElementById("start").value = "";
-  document.getElementById("end").value = "";
 
   loadEvents();
 };
 
-
-// ===================== FORMAT DATE =====================
-function formatDate(d) {
-  return new Date(d).toLocaleDateString("en-US", {
-    weekday:"long",
-    month:"long",
-    day:"numeric",
-    year:"numeric"
-  });
-}
-
-
-// ===================== LOAD EVENTS =====================
+// ===== LOAD EVENTS =====
 async function loadEvents() {
 
+  const snap = await getDocs(collection(db,"events"));
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  const snap = await getDocs(collection(db, "events"));
-
   const grouped = {};
 
-  snap.forEach(docSnap => {
+  snap.forEach(d => {
+    const ev = { id: d.id, ...d.data() };
 
-    const ev = {
-      id: docSnap.id,
-      ...docSnap.data()
-    };
-
-    const key = ev.title || "Untitled";
-
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(ev);
+    if (!grouped[ev.title]) grouped[ev.title] = [];
+    grouped[ev.title].push(ev);
   });
 
-  Object.keys(grouped).forEach(title => {
+  Object.entries(grouped).forEach(([title, events]) => {
 
-    const box = document.createElement("div");
-    box.innerHTML = `<h3>${title}</h3>`;
+    const details = document.createElement("details");
+    details.innerHTML = `<summary>${title}</summary>`;
 
-    grouped[title].forEach(ev => {
+    events.forEach(ev => {
 
       const row = document.createElement("div");
       row.className = "event";
 
+      const date = new Date(ev.start).toLocaleDateString("en-US", {
+        weekday:"long",
+        month:"long",
+        day:"numeric"
+      });
+
       row.innerHTML = `
         <div>
-          <b>${formatDate(ev.date)}</b><br/>
-          <small>${ev.start || ""} - ${ev.end || ""}</small>
-          ${ev.repeat === "weekly" ? " 🔁" : ""}
+          <b>${date}</b><br/>
+          <small>${ev.start.slice(11,16)} - ${ev.end.slice(11,16)}</small>
         </div>
 
         <button class="delBtn" data-id="${ev.id}">
@@ -198,30 +182,32 @@ async function loadEvents() {
         </button>
       `;
 
-      box.appendChild(row);
+      details.appendChild(row);
     });
 
-    list.appendChild(box);
+    list.appendChild(details);
   });
 }
 
-
-// ===================== DELETE =====================
+// ===== DELETE =====
 document.addEventListener("click", async (e) => {
-
   if (!e.target.classList.contains("delBtn")) return;
 
-  const id = e.target.dataset.id;
-
-  if (!confirm("Delete event?")) return;
-
-  await deleteDoc(doc(db, "events", id));
-
+  await deleteDoc(doc(db,"events", e.target.dataset.id));
   loadEvents();
 });
 
+// ===== DELETE ALL =====
+document.getElementById("deleteAll").onclick = async () => {
+  const snap = await getDocs(collection(db,"events"));
 
-// initial load
+  for (let d of snap.docs) {
+    await deleteDoc(doc(db,"events", d.id));
+  }
+
+  loadEvents();
+};
+
 loadEvents();
 
 </script>

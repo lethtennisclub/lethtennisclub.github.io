@@ -1,59 +1,36 @@
-// script.js
 import { db, collection, getDocs } from './firebase.js';
 
-// Функция загрузки событий из Firestore
 async function loadEvents() {
-  const eventsCol = collection(db, 'events');
-  const eventsSnapshot = await getDocs(eventsCol);
+  const snap = await getDocs(collection(db,"events"));
+
   const events = [];
 
-  eventsSnapshot.forEach(doc => {
-    console.log(data);
-    const data = doc.data();
-    // Даты в Firestore — строки ISO, просто используем их
-    const start = data.start;           // например "2025-07-19T18:00:00"
-    const end = data.end || null;
+  snap.forEach(d => {
+    const data = d.data();
 
     events.push({
-  id: doc.id,
-  title: data.title || "No title",
-
-  start: data.start,
-  end: data.end || undefined,
-
-  allDay: false
-});
+      id: d.id,
+      title: data.title,
+      start: data.start,
+      end: data.end
+    });
   });
 
   return events;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const calendarEl = document.getElementById('calendar');
+document.addEventListener("DOMContentLoaded", async () => {
 
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-  initialView: 'dayGridMonth',
-  height: 600,
+  const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
 
-  displayEventTime: true,   // показывать время начала
-  displayEventEnd: true,    // показывать время окончания
-  eventTimeFormat: {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  },
+    initialView: "dayGridMonth",
 
-  events: async function(fetchInfo, successCallback, failureCallback) {
-    try {
+    events: async (info, success) => {
       const events = await loadEvents();
-      successCallback(events);
-    } catch (error) {
-      console.error('Error loading events from Firestore:', error);
-      failureCallback(error);
+      success(events);
     }
-  }
-});
 
+  });
 
   calendar.render();
 });
