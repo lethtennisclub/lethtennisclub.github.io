@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -81,10 +82,8 @@ small { color:#6b7280; }
   <h2>Add Event</h2>
 
   <input id="title" placeholder="Title" />
-
   <input id="date" type="date" />
 
-  <!-- TIME PICKERS -->
   <div class="row">
     <select id="start"></select>
     <select id="end"></select>
@@ -95,7 +94,6 @@ small { color:#6b7280; }
     <option value="weekly">Weekly</option>
   </select>
 
-  <!-- WEEKLY OPTIONS -->
   <div id="repeatBox">
 
     <p><b>Repeat days:</b></p>
@@ -136,8 +134,7 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc,
-  serverTimestamp
+  doc
 } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -156,7 +153,6 @@ function fillTimes() {
 
   for (let h = 8; h <= 23; h++) {
     const t = `${String(h).padStart(2,'0')}:00`;
-
     start.innerHTML += `<option value="${t}">${t}</option>`;
     end.innerHTML += `<option value="${t}">${t}</option>`;
   }
@@ -172,33 +168,45 @@ document.getElementById("repeat").onchange = (e) => {
 // ===== ADD EVENT =====
 document.getElementById("addBtn").onclick = async () => {
 
-  const title = titleInput.value;
-  const date = date.value;
+  const title = document.getElementById("title").value.trim();
+  const dateVal = document.getElementById("date").value;
   const start = document.getElementById("start").value;
   const end = document.getElementById("end").value;
   const repeat = document.getElementById("repeat").value;
+
+  // validation
+  if (!title || !dateVal || !start || !end) {
+    alert("Fill all fields");
+    return;
+  }
 
   const days = [...document.querySelectorAll(".day:checked")]
     .map(d => Number(d.value));
 
   const repeatEnd = document.getElementById("repeatEnd").value;
 
-  const startISO = `${date}T${start}:00`;
-  const endISO = `${date}T${end}:00`;
+  const startISO = `${dateVal}T${start}:00`;
+  const endISO = `${dateVal}T${end}:00`;
 
-  await addDoc(collection(db,"events"), {
-    title,
-    start: startISO,
-    end: endISO,
-    recurrence: {
-      weekly: repeat === "weekly",
-      days,
-      repeatEnd,
-      repeatStart: date
-    }
-  });
+  try {
+    await addDoc(collection(db,"events"), {
+      title,
+      start: startISO,
+      end: endISO,
+      recurrence: {
+        weekly: repeat === "weekly",
+        days,
+        repeatEnd,
+        repeatStart: dateVal
+      }
+    });
 
-  loadEvents();
+    loadEvents();
+
+  } catch (e) {
+    console.error(e);
+    alert("Error adding event");
+  }
 };
 
 // ===== LOAD EVENTS =====
@@ -220,8 +228,6 @@ async function loadEvents() {
   Object.entries(grouped).forEach(([title, events]) => {
 
     const details = document.createElement("details");
-    details.open = false;
-
     details.innerHTML = `<summary>${title}</summary>`;
 
     events.forEach(ev => {
