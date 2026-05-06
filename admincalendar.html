@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,7 +64,19 @@ button:hover { background:#166534; }
   background:#b91c1c;
 }
 
-#repeatBox { display:none; margin-top:1rem; }
+#repeatBox {
+  display:none;
+  margin-top:1rem;
+  padding:1rem;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#f9fff9;
+}
+
+#repeatBox label {
+  display:inline-block;
+  margin-right:10px;
+}
 </style>
 </head>
 
@@ -100,16 +111,23 @@ button:hover { background:#166534; }
   </select>
 
   <div id="repeatBox">
-    <label><input type="checkbox" value="1" class="day"> Mon</label>
-    <label><input type="checkbox" value="2" class="day"> Tue</label>
-    <label><input type="checkbox" value="3" class="day"> Wed</label>
-    <label><input type="checkbox" value="4" class="day"> Thu</label>
-    <label><input type="checkbox" value="5" class="day"> Fri</label>
-    <label><input type="checkbox" value="6" class="day"> Sat</label>
-    <label><input type="checkbox" value="0" class="day"> Sun</label>
 
-    <input type="date" id="repeatEnd" />
-  </div>
+  <p><b>Repeat on:</b></p>
+
+  <label><input type="checkbox" value="1" class="day"> Mon</label>
+  <label><input type="checkbox" value="2" class="day"> Tue</label>
+  <label><input type="checkbox" value="3" class="day"> Wed</label>
+  <label><input type="checkbox" value="4" class="day"> Thu</label>
+  <label><input type="checkbox" value="5" class="day"> Fri</label>
+  <label><input type="checkbox" value="6" class="day"> Sat</label>
+  <label><input type="checkbox" value="0" class="day"> Sun</label>
+
+  <br><br>
+
+  <label><b>Repeat until</b></label>
+  <input type="date" id="repeatEnd" />
+
+</div>
 
   <button id="addBtn">Add Event</button>
   <button id="deleteAll" style="margin-top:1rem;background:#7f1d1d;">
@@ -194,6 +212,10 @@ function fillTimes() {
 fillTimes();
 
 // ADD EVENT
+document.getElementById("repeat").onchange = (e) => {
+  document.getElementById("repeatBox").style.display =
+    e.target.value === "weekly" ? "block" : "none";
+};
 document.getElementById("addBtn").onclick = async () => {
 
   const title = document.getElementById("title").value;
@@ -206,11 +228,24 @@ document.getElementById("addBtn").onclick = async () => {
   const startISO = `${dateVal}T${start}:00`;
   const endISO = `${dateVal}T${end}:00`;
 
-  await addDoc(collection(db,"events"), {
-    title,
-    start: startISO,
-    end: endISO
-  });
+const repeatType = document.getElementById("repeat").value;
+
+const days = [...document.querySelectorAll(".day:checked")]
+  .map(d => Number(d.value));
+
+const repeatEnd = document.getElementById("repeatEnd").value;
+
+await addDoc(collection(db,"events"), {
+  title,
+  start: startISO,
+  end: endISO,
+  recurrence: {
+    weekly: repeatType === "weekly",
+    days: repeatType === "weekly" ? days : [],
+    repeatEnd: repeatType === "weekly" ? repeatEnd : null,
+    repeatStart: repeatType === "weekly" ? dateVal : null
+  }
+});
 
   loadEvents();
 };
@@ -252,4 +287,3 @@ document.getElementById("deleteAll").onclick = async () => {
 </script>
 </body>
 </html>
-```
