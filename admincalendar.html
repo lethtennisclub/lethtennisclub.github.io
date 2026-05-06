@@ -216,19 +216,54 @@ document.getElementById("addBtn").onclick = async () => {
 
 // LOAD
 async function loadEvents() {
+
   const snap = await getDocs(collection(db,"events"));
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  snap.forEach(d => {
-    const ev = d.data();
+  const grouped = {};
 
-    list.innerHTML += `
-      <div class="event">
-        ${ev.title} (${ev.start})
-        <button class="delBtn" data-id="${d.id}">Delete</button>
-      </div>
+  snap.forEach(d => {
+    const ev = { id: d.id, ...d.data() };
+
+    if (!grouped[ev.title]) grouped[ev.title] = [];
+    grouped[ev.title].push(ev);
+  });
+
+  Object.entries(grouped).forEach(([title, events]) => {
+
+    const details = document.createElement("details");
+    details.className = "event-group";
+
+    const count = events.length;
+
+    details.innerHTML = `
+      <summary>
+        ${title} <small>(${count})</small>
+      </summary>
     `;
+
+    const container = document.createElement("div");
+
+    events.forEach(ev => {
+
+      const row = document.createElement("div");
+      row.className = "event";
+
+      row.innerHTML = `
+        <div>
+          ${new Date(ev.start).toDateString()}<br/>
+          <small>${ev.start.slice(11,16)} - ${ev.end.slice(11,16)}</small>
+        </div>
+
+        <button class="delBtn" data-id="${ev.id}">Delete</button>
+      `;
+
+      container.appendChild(row);
+    });
+
+    details.appendChild(container);
+    list.appendChild(details);
   });
 }
 
