@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,10 +65,7 @@ button:hover { background:#166534; }
   background:#b91c1c;
 }
 
-#repeatBox {
-  display:none;
-  margin-top:1rem;
-}
+#repeatBox { display:none; margin-top:1rem; }
 </style>
 </head>
 
@@ -102,13 +100,13 @@ button:hover { background:#166534; }
   </select>
 
   <div id="repeatBox">
-    <label><input type="checkbox" value="0" class="day"> Sun</label>
     <label><input type="checkbox" value="1" class="day"> Mon</label>
     <label><input type="checkbox" value="2" class="day"> Tue</label>
     <label><input type="checkbox" value="3" class="day"> Wed</label>
     <label><input type="checkbox" value="4" class="day"> Thu</label>
     <label><input type="checkbox" value="5" class="day"> Fri</label>
     <label><input type="checkbox" value="6" class="day"> Sat</label>
+    <label><input type="checkbox" value="0" class="day"> Sun</label>
 
     <input type="date" id="repeatEnd" />
   </div>
@@ -157,19 +155,20 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-/* ================= LOGIN ================= */
-
+// LOGIN
 document.getElementById("login-btn").onclick = async () => {
   try {
-    const emailVal = document.getElementById("email").value;
-    const passVal = document.getElementById("password").value;
-
-    await signInWithEmailAndPassword(auth, emailVal, passVal);
+    await signInWithEmailAndPassword(
+      auth,
+      document.getElementById("email").value,
+      document.getElementById("password").value
+    );
   } catch (e) {
     document.getElementById("error").innerText = e.message;
   }
 };
 
+// SHOW PANEL
 onAuthStateChanged(auth, (user) => {
   if (user) {
     document.getElementById("login-screen").style.display = "none";
@@ -181,9 +180,11 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-/* ================= TIME ================= */
-
+// TIMES
 function fillTimes() {
+  const start = document.getElementById("start");
+  const end = document.getElementById("end");
+
   for (let h = 8; h <= 23; h++) {
     const t = `${String(h).padStart(2,'0')}:00`;
     start.innerHTML += `<option value="${t}">${t}</option>`;
@@ -192,151 +193,55 @@ function fillTimes() {
 }
 fillTimes();
 
-/* ================= REPEAT UI ================= */
-
-repeat.onchange = () => {
-  repeatBox.style.display = repeat.value === "weekly" ? "block" : "none";
-};
-
-/* ================= ADD EVENT ================= */
-
-addBtn.onclick = async () => {
+// ADD EVENT
+document.getElementById("addBtn").onclick = async () => {
 
   const title = document.getElementById("title").value;
   const dateVal = document.getElementById("date").value;
-  const startT = start.value;
-  const endT = end.value;
-
-  const repeatType = repeat.value;
-  const repeatEnd = document.getElementById("repeatEnd").value;
-
-  const days = [...document.querySelectorAll(".day:checked")]
-    .map(d => Number(d.value));
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
 
   if (!title || !dateVal) return alert("Fill fields");
 
-  if (repeatType === "weekly" && (days.length === 0 || !repeatEnd)) {
-    alert("Select repeat days and end date");
-    return;
-  }
+  const startISO = `${dateVal}T${start}:00`;
+  const endISO = `${dateVal}T${end}:00`;
 
   await addDoc(collection(db,"events"), {
     title,
-    start: `${dateVal}T${startT}:00`,
-    end: `${dateVal}T${endT}:00`,
-    recurrence: {
-      weekly: repeatType === "weekly",
-      days,
-      repeatStart: dateVal,
-      repeatEnd
-    }
+    start: startISO,
+    end: endISO
   });
 
   loadEvents();
 };
 
-/* ================= EXPAND REPEAT ================= */
-
-function expandEvent(ev) {
-  const res = [];
-
-  if (!ev.recurrence?.weekly) return [ev];
-
-  const start = new Date(ev.recurrence.repeatStart);
-  const endLimit = new Date(ev.recurrence.repeatEnd);
-
-  const cur = new Date(start);
-
-  while (cur <= endLimit) {
-
-    const day = cur.getDay();
-
-    if (ev.recurrence.days.includes(day)) {
-
-      const startTime = ev.start.split("T")[1];
-      const endTime = ev.end.split("T")[1];
-
-      const s = new Date(cur);
-      const e = new Date(cur);
-
-      s.setHours(startTime.split(":")[0], startTime.split(":")[1]);
-      e.setHours(endTime.split(":")[0], endTime.split(":")[1]);
-
-      res.push({
-        id: ev.id,
-        title: ev.title,
-        start: s,
-        end: e
-      });
-    }
-
-    cur.setDate(cur.getDate() + 1);
-  }
-
-  return res;
-}
-
-/* ================= LOAD ================= */
-
+// LOAD
 async function loadEvents() {
-
   const snap = await getDocs(collection(db,"events"));
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  const grouped = {};
-  let all = [];
-
   snap.forEach(d => {
-    const ev = { id: d.id, ...d.data() };
-    all = all.concat(expandEvent(ev));
-  });
+    const ev = d.data();
 
-  all.forEach(ev => {
-    if (!grouped[ev.title]) grouped[ev.title] = [];
-    grouped[ev.title].push(ev);
-  });
-
-  Object.entries(grouped).forEach(([title, events]) => {
-
-    const details = document.createElement("details");
-    details.innerHTML = `<summary>${title} (${events.length})</summary>`;
-
-    const box = document.createElement("div");
-
-    events.forEach(ev => {
-
-      const row = document.createElement("div");
-      row.className = "event";
-
-      row.innerHTML = `
-        <div>
-          ${new Date(ev.start).toDateString()}<br/>
-          <small>${ev.start.toString().slice(16,21)} - ${ev.end.toString().slice(16,21)}</small>
-        </div>
-
-        <button class="delBtn" data-id="${ev.id}">Delete</button>
-      `;
-
-      box.appendChild(row);
-    });
-
-    details.appendChild(box);
-    list.appendChild(details);
+    list.innerHTML += `
+      <div class="event">
+        ${ev.title} (${ev.start})
+        <button class="delBtn" data-id="${d.id}">Delete</button>
+      </div>
+    `;
   });
 }
 
-/* ================= DELETE ================= */
-
+// DELETE
 document.addEventListener("click", async (e) => {
   if (!e.target.classList.contains("delBtn")) return;
   await deleteDoc(doc(db,"events", e.target.dataset.id));
   loadEvents();
 });
 
-/* ================= DELETE ALL ================= */
-
-deleteAll.onclick = async () => {
+// DELETE ALL
+document.getElementById("deleteAll").onclick = async () => {
   const snap = await getDocs(collection(db,"events"));
   for (let d of snap.docs) {
     await deleteDoc(doc(db,"events", d.id));
@@ -347,3 +252,4 @@ deleteAll.onclick = async () => {
 </script>
 </body>
 </html>
+```
