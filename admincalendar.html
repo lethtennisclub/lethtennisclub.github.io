@@ -12,7 +12,6 @@ body {
   color:#14532d;
 }
 
-/* LOGIN */
 #login-screen {
   max-width:300px;
   margin:5rem auto;
@@ -99,13 +98,13 @@ button:hover { background:#166534; }
   </select>
 
   <div id="repeatBox">
+    <label><input type="checkbox" value="0" class="day"> Sun</label>
     <label><input type="checkbox" value="1" class="day"> Mon</label>
     <label><input type="checkbox" value="2" class="day"> Tue</label>
     <label><input type="checkbox" value="3" class="day"> Wed</label>
     <label><input type="checkbox" value="4" class="day"> Thu</label>
     <label><input type="checkbox" value="5" class="day"> Fri</label>
     <label><input type="checkbox" value="6" class="day"> Sat</label>
-    <label><input type="checkbox" value="0" class="day"> Sun</label>
 
     <input type="date" id="repeatEnd" />
   </div>
@@ -159,31 +158,27 @@ document.getElementById("login-btn").onclick = async () => {
   try {
     await signInWithEmailAndPassword(
       auth,
-      document.getElementById("email").value,
-      document.getElementById("password").value
+      email.value,
+      password.value
     );
   } catch (e) {
-    document.getElementById("error").innerText = e.message;
+    error.innerText = e.message;
   }
 };
 
-// SHOW PANEL
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("admin-panel").style.display = "block";
+    login-screen.style.display = "none";
+    admin-panel.style.display = "block";
     loadEvents();
   } else {
-    document.getElementById("login-screen").style.display = "block";
-    document.getElementById("admin-panel").style.display = "none";
+    login-screen.style.display = "block";
+    admin-panel.style.display = "none";
   }
 });
 
-// TIMES
+// TIME
 function fillTimes() {
-  const start = document.getElementById("start");
-  const end = document.getElementById("end");
-
   for (let h = 8; h <= 23; h++) {
     const t = `${String(h).padStart(2,'0')}:00`;
     start.innerHTML += `<option value="${t}">${t}</option>`;
@@ -192,27 +187,80 @@ function fillTimes() {
 }
 fillTimes();
 
+// SHOW REPEAT UI
+repeat.onchange = () => {
+  repeatBox.style.display = repeat.value === "weekly" ? "block" : "none";
+};
+
 // ADD EVENT
-document.getElementById("addBtn").onclick = async () => {
+addBtn.onclick = async () => {
 
   const title = document.getElementById("title").value;
   const dateVal = document.getElementById("date").value;
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
+  const startT = start.value;
+  const endT = end.value;
+  const repeatType = repeat.value;
+  const repeatEnd = document.getElementById("repeatEnd").value;
+
+  const days = [...document.querySelectorAll(".day:checked")]
+    .map(d => Number(d.value));
 
   if (!title || !dateVal) return alert("Fill fields");
 
-  const startISO = `${dateVal}T${start}:00`;
-  const endISO = `${dateVal}T${end}:00`;
-
   await addDoc(collection(db,"events"), {
     title,
-    start: startISO,
-    end: endISO
+    start: `${dateVal}T${startT}:00`,
+    end: `${dateVal}T${endT}:00`,
+    recurrence: {
+      weekly: repeatType === "weekly",
+      days,
+      repeatEnd,
+      repeatStart: dateVal
+    }
   });
 
   loadEvents();
 };
+
+// EXPAND REPEAT
+function expandEvent(ev) {
+  const res = [];
+
+  if (!ev.recurrence?.weekly) return [ev];
+
+  const start = new Date(ev.recurrence.repeatStart);
+  const endLimit = new Date(ev.recurrence.repeatEnd);
+
+  const cur = new Date(start);
+
+  while (cur <= endLimit) {
+
+    const day = cur.getDay();
+
+    if (ev.recurrence.days.includes(day)) {
+
+      const startTime = ev.start.split("T")[1];
+      const endTime = ev.end.split("T")[1];
+
+      const s = new Date(cur);
+      const e = new Date(cur);
+
+      s.setHours(startTime.split(":")[0], startTime.split(":")[1]);
+      e.setHours(endTime.split(":")[0], endTime.split(":")[1]);
+
+      res.push({
+        id: ev.id,
+        title: ev.title,
+        start: s,
+        end: e
+      });
+    }
+
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  return res;
+}
 
 // LOAD
 async function loadEvents() {
@@ -223,9 +271,14 @@ async function loadEvents() {
 
   const grouped = {};
 
+  let all = [];
+
   snap.forEach(d => {
     const ev = { id: d.id, ...d.data() };
+    all = all.concat(expandEvent(ev));
+  });
 
+  all.forEach(ev => {
     if (!grouped[ev.title]) grouped[ev.title] = [];
     grouped[ev.title].push(ev);
   });
@@ -233,17 +286,9 @@ async function loadEvents() {
   Object.entries(grouped).forEach(([title, events]) => {
 
     const details = document.createElement("details");
-    details.className = "event-group";
+    details.innerHTML = `<summary>${title} (${events.length})</summary>`;
 
-    const count = events.length;
-
-    details.innerHTML = `
-      <summary>
-        ${title} <small>(${count})</small>
-      </summary>
-    `;
-
-    const container = document.createElement("div");
+    const box = document.createElement("div");
 
     events.forEach(ev => {
 
@@ -253,16 +298,16 @@ async function loadEvents() {
       row.innerHTML = `
         <div>
           ${new Date(ev.start).toDateString()}<br/>
-          <small>${ev.start.slice(11,16)} - ${ev.end.slice(11,16)}</small>
+          <small>${ev.start.toString().slice(16,21)} - ${ev.end.toString().slice(16,21)}</small>
         </div>
 
         <button class="delBtn" data-id="${ev.id}">Delete</button>
       `;
 
-      container.appendChild(row);
+      box.appendChild(row);
     });
 
-    details.appendChild(container);
+    details.appendChild(box);
     list.appendChild(details);
   });
 }
@@ -275,7 +320,7 @@ document.addEventListener("click", async (e) => {
 });
 
 // DELETE ALL
-document.getElementById("deleteAll").onclick = async () => {
+deleteAll.onclick = async () => {
   const snap = await getDocs(collection(db,"events"));
   for (let d of snap.docs) {
     await deleteDoc(doc(db,"events", d.id));
