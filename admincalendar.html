@@ -77,6 +77,25 @@ button:hover { background:#166534; }
   display:inline-block;
   margin-right:10px;
 }
+
+details {
+  margin-bottom: 10px;
+  background: #f8fff8;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.group small {
+  color: #666;
+  font-weight: normal;
+  margin-left: 5px;
+}
 </style>
 </head>
 
@@ -250,21 +269,106 @@ await addDoc(collection(db,"events"), {
   loadEvents();
 };
 
+//pered load events
+function expandRecurringEvent(ev) {
+
+  // если нет повторов — возвращаем как есть
+  if (!ev.recurrence?.weekly) {
+    return [ev];
+  }
+
+  const results = [];
+
+  const startDate = new Date(ev.recurrence.repeatStart);
+  const endLimit = new Date(ev.recurrence.repeatEnd);
+
+  const current = new Date(startDate);
+
+  while (current <= endLimit) {
+
+    const day = current.getDay(); // 0-6
+
+    if (ev.recurrence.days.includes(day)) {
+
+      const startTime = ev.start.split("T")[1];
+      const endTime = ev.end.split("T")[1];
+
+      const start = new Date(current);
+      const end = new Date(current);
+
+      start.setHours(startTime.split(":")[0], startTime.split(":")[1]);
+      end.setHours(endTime.split(":")[0], endTime.split(":")[1]);
+
+      results.push({
+        id: ev.id,
+        title: ev.title,
+        start,
+        end
+      });
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return results;
+}
 // LOAD
 async function loadEvents() {
+
   const snap = await getDocs(collection(db,"events"));
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  snap.forEach(d => {
-    const ev = d.data();
+  let allEvents = [];
 
-    list.innerHTML += `
-      <div class="event">
-        ${ev.title} (${ev.start})
-        <button class="delBtn" data-id="${d.id}">Delete</button>
-      </div>
+  snap.forEach(d => {
+    const ev = { id: d.id, ...d.data() };
+
+    const expanded = expandRecurringEvent(ev);
+    allEvents = allEvents.concat(expanded);
+  });
+
+  // 🔥 1. группировка по title
+  const grouped = {};
+
+  allEvents.forEach(ev => {
+    if (!grouped[ev.title]) grouped[ev.title] = [];
+    grouped[ev.title].push(ev);
+  });
+
+  // 🔥 2. вывод как спойлеры
+  Object.entries(grouped).forEach(([title, events]) => {
+
+    const details = document.createElement("details");
+    details.className = "group";
+
+    details.innerHTML = `
+      <summary>
+        ${title} <small>(${events.length})</small>
+      </summary>
     `;
+
+    const container = document.createElement("div");
+
+    events.forEach(ev => {
+
+      const row = document.createElement("div");
+      row.className = "event";
+
+      row.innerHTML = `
+        <div>
+          ${new Date(ev.start).toDateString()}<br/>
+          <small>${ev.start.toString().slice(16,21)} - ${ev.end.toString().slice(16,21)}</small>
+        </div>
+
+        <button class="delBtn" data-id="${ev.id}">Delete</button>
+      `;
+
+      container.appendChild(row);
+    });
+
+    details.appendChild(container);
+    list.appendChild(details);
   });
 }
 
