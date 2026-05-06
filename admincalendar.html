@@ -231,10 +231,6 @@ function fillTimes() {
 fillTimes();
 
 // ADD EVENT
-document.getElementById("repeat").onchange = (e) => {
-  document.getElementById("repeatBox").style.display =
-    e.target.value === "weekly" ? "block" : "none";
-};
 document.getElementById("addBtn").onclick = async () => {
 
   const title = document.getElementById("title").value;
@@ -242,36 +238,48 @@ document.getElementById("addBtn").onclick = async () => {
   const start = document.getElementById("start").value;
   const end = document.getElementById("end").value;
 
-  if (!title || !dateVal) return alert("Fill fields");
+  if (!title || !dateVal || !start || !end) {
+    return alert("Fill fields");
+  }
 
-  const startISO = `${dateVal}T${start}:00`;
-  const endISO = `${dateVal}T${end}:00`;
+  const repeatType = document.getElementById("repeat").value;
+  const repeatEnd = document.getElementById("repeatEnd").value;
 
-const repeatType = document.getElementById("repeat").value;
-
-const days = [...document.querySelectorAll(".day:checked")]
-  .map(d => Number(d.value));
-
-const repeatEnd = document.getElementById("repeatEnd").value;
-
-// всегда сохраняем ПЕРВОЕ событие
-await addDoc(collection(db,"events"), {
-  title,
-  start: startISO,
-  end: endISO
-});
-
-// если повтор weekly — создаём отдельные события
-if (repeatType === "weekly") {
-
-  const startDate = new Date(dateVal);
-  const endDate = new Date(repeatEnd);
-
-  const selectedDays = [...document.querySelectorAll(".day:checked")]
-    .map(d => Number(d.value));
+  const seriesId = crypto.randomUUID();
 
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
+
+  // ===== ОДИНОЧНОЕ СОБЫТИЕ =====
+  if (repeatType !== "weekly") {
+
+    const s = new Date(dateVal);
+    const e = new Date(dateVal);
+
+    s.setHours(sh, sm);
+    e.setHours(eh, em);
+
+    await addDoc(collection(db, "events"), {
+      title,
+      start: s.toISOString(),
+      end: e.toISOString(),
+      seriesId
+    });
+
+    loadEvents();
+    return;
+  }
+
+  // ===== WEEKLY REPEAT =====
+  const selectedDays = [...document.querySelectorAll(".day:checked")]
+    .map(d => Number(d.value));
+
+  if (!repeatEnd) {
+    return alert("Select repeat end date");
+  }
+
+  const startDate = new Date(dateVal);
+  const endDate = new Date(repeatEnd);
 
   let current = new Date(startDate);
 
@@ -285,16 +293,16 @@ if (repeatType === "weekly") {
       s.setHours(sh, sm);
       e.setHours(eh, em);
 
-      await addDoc(collection(db,"events"), {
+      await addDoc(collection(db, "events"), {
         title,
         start: s.toISOString(),
-        end: e.toISOString()
+        end: e.toISOString(),
+        seriesId
       });
     }
 
     current.setDate(current.getDate() + 1);
   }
-}
 
   loadEvents();
 };
@@ -302,59 +310,65 @@ if (repeatType === "weekly") {
 // LOAD
 async function loadEvents() {
 
-  const snap = await getDocs(collection(db,"events"));
+  const snap = await getDocs(collection(db, "events"));
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  let allEvents = [];
+  const grouped = {};
 
   snap.forEach(d => {
     const ev = { id: d.id, ...d.data() };
 
-snap.forEach(d => {
-  const ev = { id: d.id, ...d.data() };
-  allEvents.push(ev);
-});
+    const key = ev.seriesId || ev.id;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        title: ev.title,
+        events: []
+      };
+    }
+
+    grouped[key].events.push(ev);
   });
 
-  // 🔥 1. группировка по title
-  const grouped = {};
-
-  allEvents.forEach(ev => {
-    if (!grouped[ev.title]) grouped[ev.title] = [];
-    grouped[ev.title].push(ev);
-  });
-
-  // 🔥 2. вывод как спойлеры
-  Object.entries(grouped).forEach(([title, events]) => {
+  Object.values(grouped).forEach(group => {
 
     const details = document.createElement("details");
     details.className = "group";
 
     details.innerHTML = `
       <summary>
-        ${title} <small>(${events.length})</small>
+        ${group.title} <small>(${group.events.length})</small>
       </summary>
     `;
 
     const container = document.createElement("div");
 
-    events.forEach(ev => {
+    group.events
+      .sort((a, b) => new Date(a.start) - new Date(b.start))
+      .forEach(ev => {
 
-      const row = document.createElement("div");
-      row.className = "event";
+        const start = new Date(ev.start);
+        const end = new Date(ev.end);
 
-      row.innerHTML = `
-        <div>
-          ${new Date(ev.start).toDateString()}<br/>
-          <small>${ev.start.toString().slice(16,21)} - ${ev.end.toString().slice(16,21)}</small>
-        </div>
+        const row = document.createElement("div");
+        row.className = "event";
 
-        <button class="delBtn" data-id="${ev.id}">Delete</button>
-      `;
+        row.innerHTML = `
+          <div>
+            ${start.toDateString()}<br/>
+            <small>
+              ${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+              -
+              ${end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+            </small>
+          </div>
 
-      container.appendChild(row);
-    });
+          <button class="delBtn" data-id="${ev.id}">Delete</button>
+        `;
+
+        container.appendChild(row);
+      });
 
     details.appendChild(container);
     list.appendChild(details);
@@ -364,16 +378,21 @@ snap.forEach(d => {
 // DELETE
 document.addEventListener("click", async (e) => {
   if (!e.target.classList.contains("delBtn")) return;
-  await deleteDoc(doc(db,"events", e.target.dataset.id));
+
+  await deleteDoc(doc(db, "events", e.target.dataset.id));
   loadEvents();
 });
 
+
 // DELETE ALL
 document.getElementById("deleteAll").onclick = async () => {
-  const snap = await getDocs(collection(db,"events"));
-  for (let d of snap.docs) {
-    await deleteDoc(doc(db,"events", d.id));
+
+  const snap = await getDocs(collection(db, "events"));
+
+  for (const d of snap.docs) {
+    await deleteDoc(doc(db, "events", d.id));
   }
+
   loadEvents();
 };
 
