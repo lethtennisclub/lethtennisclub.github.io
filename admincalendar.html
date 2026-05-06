@@ -261,7 +261,7 @@ await addDoc(collection(db,"events"), {
   recurrence: {
     weekly: repeatType === "weekly",
     days: repeatType === "weekly" ? days : [],
-    repeatEnd: repeatType === "weekly" ? repeatEnd : null,
+    repeatEnd: (repeatType === "weekly" && repeatEnd) ? repeatEnd : null,
     repeatStart: repeatType === "weekly" ? dateVal : null
   }
 });
@@ -272,46 +272,52 @@ await addDoc(collection(db,"events"), {
 //pered load events
 function expandRecurringEvent(ev) {
 
-  if (!ev.recurrence?.weekly) {
-    return [ev];
-  }
+  if (!ev.recurrence?.weekly) return [ev];
 
-  const results = [];
+  if (!ev.recurrence.repeatStart || !ev.recurrence.repeatEnd) {
+    return [ev]; // 🔥 защита
+  }
 
   const startDate = new Date(ev.recurrence.repeatStart + "T00:00:00");
   const endLimit = new Date(ev.recurrence.repeatEnd + "T23:59:59");
 
-  const allowedDays = (ev.recurrence.days || []).map(Number);
+  if (isNaN(startDate) || isNaN(endLimit)) {
+    return [ev]; // 🔥 защита от Invalid Date
+  }
+
+  const days = (ev.recurrence.days || []).map(Number);
+
+  const results = [];
+
+  const [sh, sm] = ev.start.split("T")[1].split(":").map(Number);
+  const [eh, em] = ev.end.split("T")[1].split(":").map(Number);
 
   let current = new Date(startDate);
 
-  const startTime = ev.start.split("T")[1];
-  const endTime = ev.end.split("T")[1];
+  let safety = 0; // 🔥 защита от бесконечного цикла
 
-  const [sh, sm] = startTime.split(":").map(Number);
-  const [eh, em] = endTime.split(":").map(Number);
+  while (current <= endLimit && safety < 5000) {
 
-  while (current <= endLimit) {
+    const day = current.getDay();
 
-    const day = current.getDay(); // 0-6
+    if (days.includes(day)) {
 
-    if (allowedDays.includes(day)) {
+      const s = new Date(current);
+      const e = new Date(current);
 
-      const start = new Date(current);
-      const end = new Date(current);
-
-      start.setHours(sh, sm);
-      end.setHours(eh, em);
+      s.setHours(sh, sm);
+      e.setHours(eh, em);
 
       results.push({
         id: ev.id,
         title: ev.title,
-        start,
-        end
+        start: s,
+        end: e
       });
     }
 
     current.setDate(current.getDate() + 1);
+    safety++;
   }
 
   return results;
