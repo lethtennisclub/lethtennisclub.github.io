@@ -281,22 +281,21 @@ function expandRecurringEvent(ev) {
   const results = [];
 
   const endLimit = new Date(ev.recurrence.repeatEnd + "T23:59:59");
-
   const days = ev.recurrence.days.map(Number);
 
   const [sh, sm] = ev.start.split("T")[1].split(":").map(Number);
   const [eh, em] = ev.end.split("T")[1].split(":").map(Number);
 
-  // 🔥 ВАЖНО: стартуем не с repeatStart, а с даты события
-  const baseStart = new Date(ev.start);
-
-  let current = new Date(baseStart);
+  // 🔥 СТАРТ С ПЕРВОЙ НЕДЕЛИ, А НЕ С ОДНОГО ДНЯ
+  let current = new Date(ev.recurrence.repeatStart + "T00:00:00");
 
   let safety = 0;
 
   while (current <= endLimit && safety < 5000) {
 
-    if (days.includes(current.getDay())) {
+    const day = current.getDay();
+
+    if (days.includes(day)) {
 
       const s = new Date(current);
       const e = new Date(current);
