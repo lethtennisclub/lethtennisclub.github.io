@@ -274,33 +274,29 @@ function expandRecurringEvent(ev) {
 
   if (!ev.recurrence?.weekly) return [ev];
 
-  if (!ev.recurrence.repeatStart || !ev.recurrence.repeatEnd) {
-    return [ev]; // 🔥 защита
+  if (!ev.recurrence.repeatEnd || !ev.recurrence.days?.length) {
+    return [ev];
   }
-
-  const startDate = new Date(ev.recurrence.repeatStart + "T00:00:00");
-  const endLimit = new Date(ev.recurrence.repeatEnd + "T23:59:59");
-
-  if (isNaN(startDate) || isNaN(endLimit)) {
-    return [ev]; // 🔥 защита от Invalid Date
-  }
-
-  const days = (ev.recurrence.days || []).map(Number);
 
   const results = [];
+
+  const endLimit = new Date(ev.recurrence.repeatEnd + "T23:59:59");
+
+  const days = ev.recurrence.days.map(Number);
 
   const [sh, sm] = ev.start.split("T")[1].split(":").map(Number);
   const [eh, em] = ev.end.split("T")[1].split(":").map(Number);
 
-  let current = new Date(startDate);
+  // 🔥 ВАЖНО: стартуем не с repeatStart, а с даты события
+  const baseStart = new Date(ev.start);
 
-  let safety = 0; // 🔥 защита от бесконечного цикла
+  let current = new Date(baseStart);
+
+  let safety = 0;
 
   while (current <= endLimit && safety < 5000) {
 
-    const day = current.getDay();
-
-    if (days.includes(day)) {
+    if (days.includes(current.getDay())) {
 
       const s = new Date(current);
       const e = new Date(current);
