@@ -272,32 +272,36 @@ await addDoc(collection(db,"events"), {
 //pered load events
 function expandRecurringEvent(ev) {
 
-  // если нет повторов — возвращаем как есть
   if (!ev.recurrence?.weekly) {
     return [ev];
   }
 
   const results = [];
 
-  const startDate = new Date(ev.recurrence.repeatStart);
-  const endLimit = new Date(ev.recurrence.repeatEnd);
+  const startDate = new Date(ev.recurrence.repeatStart + "T00:00:00");
+  const endLimit = new Date(ev.recurrence.repeatEnd + "T23:59:59");
 
-  const current = new Date(startDate);
+  const allowedDays = (ev.recurrence.days || []).map(Number);
+
+  let current = new Date(startDate);
+
+  const startTime = ev.start.split("T")[1];
+  const endTime = ev.end.split("T")[1];
+
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
 
   while (current <= endLimit) {
 
     const day = current.getDay(); // 0-6
 
-    if (ev.recurrence.days.includes(day)) {
-
-      const startTime = ev.start.split("T")[1];
-      const endTime = ev.end.split("T")[1];
+    if (allowedDays.includes(day)) {
 
       const start = new Date(current);
       const end = new Date(current);
 
-      start.setHours(startTime.split(":")[0], startTime.split(":")[1]);
-      end.setHours(endTime.split(":")[0], endTime.split(":")[1]);
+      start.setHours(sh, sm);
+      end.setHours(eh, em);
 
       results.push({
         id: ev.id,
@@ -312,6 +316,7 @@ function expandRecurringEvent(ev) {
 
   return results;
 }
+
 // LOAD
 async function loadEvents() {
 
