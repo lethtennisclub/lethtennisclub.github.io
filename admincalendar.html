@@ -12,6 +12,7 @@ body {
   color:#14532d;
 }
 
+/* LOGIN */
 #login-screen {
   max-width:300px;
   margin:5rem auto;
@@ -63,7 +64,10 @@ button:hover { background:#166534; }
   background:#b91c1c;
 }
 
-#repeatBox { display:none; margin-top:1rem; }
+#repeatBox {
+  display:none;
+  margin-top:1rem;
+}
 </style>
 </head>
 
@@ -153,31 +157,32 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// LOGIN
+/* ================= LOGIN ================= */
+
 document.getElementById("login-btn").onclick = async () => {
   try {
-    await signInWithEmailAndPassword(
-      auth,
-      email.value,
-      password.value
-    );
+    const emailVal = document.getElementById("email").value;
+    const passVal = document.getElementById("password").value;
+
+    await signInWithEmailAndPassword(auth, emailVal, passVal);
   } catch (e) {
-    error.innerText = e.message;
+    document.getElementById("error").innerText = e.message;
   }
 };
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    login-screen.style.display = "none";
-    admin-panel.style.display = "block";
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("admin-panel").style.display = "block";
     loadEvents();
   } else {
-    login-screen.style.display = "block";
-    admin-panel.style.display = "none";
+    document.getElementById("login-screen").style.display = "block";
+    document.getElementById("admin-panel").style.display = "none";
   }
 });
 
-// TIME
+/* ================= TIME ================= */
+
 function fillTimes() {
   for (let h = 8; h <= 23; h++) {
     const t = `${String(h).padStart(2,'0')}:00`;
@@ -187,18 +192,21 @@ function fillTimes() {
 }
 fillTimes();
 
-// SHOW REPEAT UI
+/* ================= REPEAT UI ================= */
+
 repeat.onchange = () => {
   repeatBox.style.display = repeat.value === "weekly" ? "block" : "none";
 };
 
-// ADD EVENT
+/* ================= ADD EVENT ================= */
+
 addBtn.onclick = async () => {
 
   const title = document.getElementById("title").value;
   const dateVal = document.getElementById("date").value;
   const startT = start.value;
   const endT = end.value;
+
   const repeatType = repeat.value;
   const repeatEnd = document.getElementById("repeatEnd").value;
 
@@ -207,6 +215,11 @@ addBtn.onclick = async () => {
 
   if (!title || !dateVal) return alert("Fill fields");
 
+  if (repeatType === "weekly" && (days.length === 0 || !repeatEnd)) {
+    alert("Select repeat days and end date");
+    return;
+  }
+
   await addDoc(collection(db,"events"), {
     title,
     start: `${dateVal}T${startT}:00`,
@@ -214,15 +227,16 @@ addBtn.onclick = async () => {
     recurrence: {
       weekly: repeatType === "weekly",
       days,
-      repeatEnd,
-      repeatStart: dateVal
+      repeatStart: dateVal,
+      repeatEnd
     }
   });
 
   loadEvents();
 };
 
-// EXPAND REPEAT
+/* ================= EXPAND REPEAT ================= */
+
 function expandEvent(ev) {
   const res = [];
 
@@ -262,7 +276,8 @@ function expandEvent(ev) {
   return res;
 }
 
-// LOAD
+/* ================= LOAD ================= */
+
 async function loadEvents() {
 
   const snap = await getDocs(collection(db,"events"));
@@ -270,7 +285,6 @@ async function loadEvents() {
   list.innerHTML = "";
 
   const grouped = {};
-
   let all = [];
 
   snap.forEach(d => {
@@ -312,14 +326,16 @@ async function loadEvents() {
   });
 }
 
-// DELETE
+/* ================= DELETE ================= */
+
 document.addEventListener("click", async (e) => {
   if (!e.target.classList.contains("delBtn")) return;
   await deleteDoc(doc(db,"events", e.target.dataset.id));
   loadEvents();
 });
 
-// DELETE ALL
+/* ================= DELETE ALL ================= */
+
 deleteAll.onclick = async () => {
   const snap = await getDocs(collection(db,"events"));
   for (let d of snap.docs) {
