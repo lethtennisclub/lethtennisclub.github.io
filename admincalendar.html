@@ -395,6 +395,25 @@ document.getElementById("deleteAll").onclick = async () => {
   loadEvents();
 };
 
+const repeatSelect = document.getElementById("repeat");
+const repeatBox = document.getElementById("repeatBox");
+
+function toggleRepeatBox() {
+  const isWeekly = repeatSelect.value === "weekly";
+
+  repeatBox.style.display = isWeekly ? "block" : "none";
+
+  // очищаем значения если выключили weekly
+  if (!isWeekly) {
+    document.querySelectorAll(".day").forEach(cb => cb.checked = false);
+    document.getElementById("repeatEnd").value = "";
+  }
+}
+
+repeatSelect.addEventListener("change", toggleRepeatBox);
+
+// начальное состояние при загрузке
+toggleRepeatBox();
 </script>
 </body>
 </html>
