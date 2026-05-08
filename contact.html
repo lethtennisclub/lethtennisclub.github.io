@@ -113,20 +113,26 @@
 
 </section>
 
-      <section class="contact-form-section">
-        <form action="#" method="POST" class="contact-form" novalidate>
-          <label for="name">Name</label>
-          <input type="text" id="name" name="name" required placeholder="Your name" />
+<section class="contact-form-section">
+  <form id="contactForm" class="contact-form">
 
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required placeholder="Your email" />
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" required placeholder="Your name" />
 
-          <label for="message">Message</label>
-          <textarea id="message" name="message" rows="5" required placeholder="Your message"></textarea>
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required placeholder="Your email" />
 
-          <button type="submit" class="button">Send Message</button>
-        </form>
-      </section>
+    <label for="message">Message</label>
+    <textarea id="message" name="message" rows="5" required placeholder="Your message"></textarea>
+
+    <button type="submit" id="submitBtn" class="button">Send Message</button>
+
+    <div id="successMessage" style="display:none; color: green; margin-top: 10px;">
+      Your message has been sent!
+    </div>
+
+  </form>
+</section>
     </div>
   </main>
 <footer>
@@ -166,11 +172,51 @@
 
  <!-- SCRIPTS -->
 
+<!-- Contact Us Form -->
+ <script>
+document.getElementById("contactForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const data = new FormData(form);
+  const button = document.getElementById("submitBtn");
+
+  // 🔄 Sending state
+  button.disabled = true;
+  button.textContent = "Sending...";
+
+  try {
+    await fetch("https://formsubmit.co/ajax/yana.fetisova271@gmail.com", {
+      method: "POST",
+      body: data,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    form.reset();
+
+    const msg = document.getElementById("successMessage");
+    msg.style.display = "block";
+
+    setTimeout(() => {
+      msg.style.display = "none";
+    }, 3000);
+
+  } catch (error) {
+    alert("Something went wrong. Please try again.");
+  }
+
+  // 🔙 Reset button
+  button.disabled = false;
+  button.textContent = "Send Message";
+});
+</script>
+
   <!-- Footer Year -->
 <script>
   document.getElementById('current-year').textContent = new Date().getFullYear();
 </script>
-
 
 </body>
 </html>
