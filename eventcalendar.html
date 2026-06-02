@@ -109,17 +109,19 @@
   order: 1;
   font-weight: 600;
   font-size: 0.85rem;
+
   white-space: normal !important;
   overflow-wrap: break-word;
   word-break: break-word;
-  max-height: 3em;
-  overflow: hidden;
+
+  max-height: none;
+  overflow: visible;
 }
 
 /* Контейнер события */
 .fc-event-main {
-  overflow: hidden !important;
-  max-height: 4.5em;
+  overflow: visible !important;
+  max-height: none !important;
 }
 
 /* Контейнер события */
@@ -165,6 +167,23 @@
 <nav>
   <a href="index.html" class="nav-link">Home</a>
   <a href="membership.html" class="nav-link">Membership</a>
+
+  <div class="dropdown">
+    <a href="guidelines.html" class="nav-link dropdown-toggle">
+      Rules & Etiquette
+      <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.957a.75.75 0 111.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+      </svg>
+    </a>
+
+    <div class="dropdown-menu">
+      <a href="club-rules.html" class="dropdown-item">Club Rules</a>
+      <a href="tennis-rules.html" class="dropdown-item">Tennis Rules</a>
+      <a href="etiquette.html" class="dropdown-item">Court Etiquette</a>
+      <a href="tournament-conduct.html" class="dropdown-item">Tournament Rules</a>
+    </div>
+  </div>
+
   <a href="programs.html" class="nav-link">Programs</a>
 
   <div class="dropdown">
@@ -181,29 +200,27 @@
     </div>
   </div>
 
-  <div class="dropdown">
-    <a href="clubinfo.html" class="nav-link dropdown-toggle">
-      About Us
-      <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.957a.75.75 0 111.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-      </svg>
+<div class="dropdown">
+  <a href="clubinfo.html" class="nav-link dropdown-toggle">
+    About Us
+    <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.957a.75.75 0 111.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+    </svg>
+  </a>
+
+  <div class="dropdown-menu">
+    <a href="ltcboard.html" class="dropdown-item">LTC Board</a>
+
+    <a href="https://www.customclothingstore.ca/online-store/Lethbridge-Tennis-Club-c151802544"
+       target="_blank"
+       rel="noopener"
+       class="dropdown-item">
+       Official LTC Clothing
     </a>
-    <div class="dropdown-menu">
-      <div class="dropdown-submenu">
-        <a href="guidelines.html" class="dropdown-item dropdown-toggle">
-          Club Guidelines
-        </a>
-        <div class="dropdown-menu">
-          <a href="club-rules.html" class="dropdown-item">Club Rules</a>
-          <a href="tennis-rules.html" class="dropdown-item">Basic Rules of Tennis</a>
-          <a href="etiquette.html" class="dropdown-item">On-Court Etiquette</a>
-          <a href="tournament-conduct.html" class="dropdown-item">Tournament Conduct</a>
-        </div>
-      </div>
-      <a href="https://www.customclothingstore.ca/online-store/Lethbridge-Tennis-Club-c151802544" target="_blank" rel="noopener" class="dropdown-item">Official LTC Clothing</a>
-      <a href="contact.html" class="dropdown-item">Contact Us</a>
-    </div>
+
+    <a href="contact.html" class="dropdown-item">Contact Us</a>
   </div>
+</div>
 </nav>
 
     </div>
