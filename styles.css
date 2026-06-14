@@ -746,7 +746,35 @@ hr {
 .next-tournament {
   margin-bottom: 3rem; /* или любое другое значение, например 40px */
 }
-/* === TOURNAMENTS PAGE === */
+/* === THE END OF TOURNAMENTS PAGE === */
+
+/* === PAST TOURNAMENT RESULTS PAGE === */
+.past-tournament-results {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: 1fr;
+}
+
+/* планшеты */
+@media (min-width: 768px) {
+    .past-tournament-results {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* десктоп */
+@media (min-width: 1200px) {
+    .past-tournament-results {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.championship-category {
+    padding: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+/* === THE END OF PAST TOURNAMENT RESULTS PAGE === */
 
 
 /* === LTC BOARD PAGE === */
