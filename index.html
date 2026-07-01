@@ -9,6 +9,34 @@
   <link rel="stylesheet" href="styles.css" />
 
 <style>
+.top-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #14532d;
+  color: white;
+  padding: 10px 15px;
+  text-align: center;
+  font-size: 14px;
+  z-index: 99999;
+}
+
+.top-banner a {
+  color: #ffcc80;
+  font-weight: bold;
+  text-decoration: underline;
+  margin-left: 6px;
+}
+
+.top-banner span {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
 .container.flex-row {
   max-width: 900px;
   margin: 2rem auto;
@@ -51,6 +79,13 @@
 </style>
 </head>
 <body>
+
+  <div class="top-banner">
+  🏕️ Youth Camp is now open! 
+  <a href="youthcamp.html">Click here to learn more</a>
+  <span onclick="this.parentElement.style.display='none'">✖</span>
+</div>
+
 
   <header>
     <div class="header-inner">
